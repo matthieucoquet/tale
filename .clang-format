@@ -1,0 +1,13 @@
+Language: Cpp
+BasedOnStyle: LLVM
+FixNamespaceComments: false
+IndentWidth: 4
+UseTab: Never
+AccessModifierOffset: -4
+ColumnLimit: 160
+PointerAlignment: Left
+SpaceBeforeCtorInitializerColon: false
+PackConstructorInitializers: Never
+BreakConstructorInitializers: AfterColon
+Cpp11BracedListStyle: true
+AlignAfterOpenBracket: BlockIndent

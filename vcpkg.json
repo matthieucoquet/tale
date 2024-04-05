@@ -1,0 +1,15 @@
+{
+    "name": "tale",
+    "version-string": "0.0.1",
+    "dependencies": [
+        "glm",
+        "glfw3",
+        "spdlog",
+        "stb",
+        {
+            "name": "imgui",
+            "default-features": false,
+            "features": [ "glfw-binding" ]
+          }
+    ]
+}

@@ -1,0 +1,56 @@
+﻿{
+  "version": 8,
+  "configurePresets": [
+    {
+      "name": "base",
+      "hidden": true,
+      "binaryDir": "${sourceDir}/../build_${presetName}",
+      "installDir": "${sourceDir}/../install_${presetName}",
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Windows"
+      },
+      "toolchainFile": "${sourceDir}/externals/vcpkg/scripts/buildsystems/vcpkg.cmake",
+      "environment": {
+        "VCPKG_TARGET_TRIPLET": "x64-windows"
+      }
+    },
+    {
+      "name": "ninja",
+      "hidden": true,
+      "displayName": "Ninja",
+      "generator": "Ninja Multi-Config",
+      "inherits": "base",
+      "toolset": "143",
+      "architecture": {
+        "value": "x64",
+        "strategy": "external"
+      }
+    },
+    {
+      "name": "vs",
+      "displayName": "Visual Studio",
+      "generator": "Visual Studio 17 2022",
+      "inherits": "base",
+      "architecture": {
+        "value": "x64",
+        "strategy": "set"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "configuration": "Debug",
+      "configurePreset": "vs",
+      "displayName": "Debug",
+      "name": "debug-vs"
+    },
+    {
+      "configuration": "Release",
+      "configurePreset": "vs",
+      "displayName": "Release",
+      "name": "release-vs"
+    }
+  ]
+}
