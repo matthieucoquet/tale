@@ -15,12 +15,12 @@ target_sources(engine
 
 target_sources(engine
    PUBLIC
-   FILE_SET cxx_modules TYPE CXX_MODULES FILES
+   FILE_SET CXX_MODULES FILES
    app.cpp
 #    core/scene.cpp
    core/window.cpp
+   vulkan/context.cpp   
    vulkan/vulkan.cpp
-   vulkan/context.cpp
 #    vulkan/command_buffer.cpp
 #    vulkan/floor_render.cpp
 #    vulkan/sphere_render.cpp

@@ -1,3 +1,4 @@
+module;
 export module tale.vulkan;
 
-export import :context;
+export import tale.vulkan.context;

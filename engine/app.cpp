@@ -1,11 +1,12 @@
 module;
-// #include <compare>
+ #include <compare>
 // #include <imgui.h>
 // #include <string_view>
 export module tale.app;
 // import cell.input_system;
 // import cell.ui_system;
 import tale.window;
+import tale.vulkan;
 // import cell.context;
 // import cell.renderer;
 // import cell.command_buffer;
@@ -34,7 +35,7 @@ private:
 
     // Scene scene;
     Window window;
-    // vulkan::Context context;
+    vulkan::Context context;
     // vulkan::Reusable_command_pools command_pools;
     // vulkan::Renderer renderer;
     // Input_system input_system;
@@ -50,8 +51,8 @@ module :private;
 namespace tale {
 App::App():
     //     scene(),
-    window(1000, 800)
-//     context(window),
+    window(1000, 800),
+    context(window)
 //     command_pools(context.device, context.queue_family, size_command_buffers),
 //     renderer(context, size_command_buffers),
 //     input_system(window.window)

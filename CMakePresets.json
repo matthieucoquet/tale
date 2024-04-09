@@ -18,11 +18,10 @@
     },
     {
       "name": "ninja",
-      "hidden": true,
+      "hidden": false,
       "displayName": "Ninja",
       "generator": "Ninja Multi-Config",
       "inherits": "base",
-      "toolset": "143",
       "architecture": {
         "value": "x64",
         "strategy": "external"
@@ -42,14 +41,27 @@
   "buildPresets": [
     {
       "configuration": "Debug",
+      "configurePreset": "ninja",
+      "displayName": "Ninja Debug",
+      "name": "debug-ninja"
+    },
+    {
+      "configuration": "Release",
+      "configurePreset": "ninja",
+      "displayName": "Ninja Release",
+      "name": "release-ninja"
+    },
+
+    {
+      "configuration": "Debug",
       "configurePreset": "vs",
-      "displayName": "Debug",
+      "displayName": "VS Debug",
       "name": "debug-vs"
     },
     {
       "configuration": "Release",
       "configurePreset": "vs",
-      "displayName": "Release",
+      "displayName": "VS Release",
       "name": "release-vs"
     }
   ]

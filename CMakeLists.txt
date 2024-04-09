@@ -6,7 +6,7 @@ project (tale)
 set(vulkan_hpp_path ${PROJECT_SOURCE_DIR}/externals/Vulkan-Hpp)
 add_library(vulkan_module)
 target_sources(vulkan_module
-    PRIVATE
+    PUBLIC
     FILE_SET CXX_MODULES
     FILES ${vulkan_hpp_path}/vulkan/vulkan.cppm
 )
