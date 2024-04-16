@@ -1,6 +1,8 @@
 .vs/
 vc140.pdb
 
+.vscode
+
 # Prerequisites
 *.d
 

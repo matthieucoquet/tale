@@ -1,7 +1,7 @@
 module;
-#include <compare>
 #include <algorithm>
 #include <array>
+#include <compare>
 #include <spdlog/spdlog.h>
 #include <vma_includes.hpp>
 
@@ -81,7 +81,7 @@ void Context::init_instance(const Window& window) {
 
     constexpr std::array required_layers{"VK_LAYER_KHRONOS_validation"};
 
-    vk::ApplicationInfo app_info{.pApplicationName = "cell", .apiVersion = VK_API_VERSION_1_3};
+    vk::ApplicationInfo app_info{.pApplicationName = "tale", .apiVersion = VK_API_VERSION_1_3};
     instance = vk::createInstance(vk::InstanceCreateInfo{
         .pApplicationInfo = &app_info,
         .enabledLayerCount = static_cast<uint32_t>(use_validation_layers ? required_layers.size() : 0u),
@@ -93,7 +93,10 @@ void Context::init_instance(const Window& window) {
 }
 
 void Context::init_device() {
-    const std::array required_device_extensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
+    const std::array required_device_extensions = {
+        VK_KHR_SWAPCHAIN_EXTENSION_NAME, VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME, VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME,
+        VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME
+    };
 
     const std::vector potential_physical_devices = instance.enumeratePhysicalDevices();
 
@@ -124,13 +127,30 @@ void Context::init_device() {
 
         // Check extensions availability
         const auto available_extensions = potential_physical_device.enumerateDeviceExtensionProperties();
-        if (std::any_of(required_device_extensions.cbegin(), required_device_extensions.cend(), [&available_extensions](const char* name) {
-                return std::all_of(available_extensions.cbegin(), available_extensions.cend(), [name](const VkExtensionProperties& prop) {
-                    return strcmp(prop.extensionName, name) != 0;
+        if (std::ranges::any_of(required_device_extensions, [&available_extensions](const char* required_extension_name) {
+                return std::ranges::all_of(available_extensions, [required_extension_name](const VkExtensionProperties& available) {
+                    return strcmp(available.extensionName, required_extension_name) != 0;
                 });
             })) {
             spdlog::debug("\tRequired extension not available.");
             continue;
+        }
+
+        // Checking features
+        {
+            auto vulkan_12_features = vk::PhysicalDeviceVulkan12Features();
+            auto as_features = vk::PhysicalDeviceAccelerationStructureFeaturesKHR{.pNext = &vulkan_12_features};
+            auto pipeline_features = vk::PhysicalDeviceRayTracingPipelineFeaturesKHR{.pNext = &as_features};
+            auto features = vk::PhysicalDeviceFeatures2{.pNext = &pipeline_features};
+            potential_physical_device.getFeatures2(&features);
+
+            if (!pipeline_features.rayTracingPipeline)
+                continue;
+            if (!as_features.accelerationStructure)
+                continue;
+            // if (!vulkan_12_features.bufferDeviceAddress || !vulkan_12_features.uniformBufferStandardLayout || !vulkan_12_features.scalarBlockLayout ||
+            //     !vulkan_12_features.uniformAndStorageBuffer8BitAccess)
+            //     continue;
         }
 
         // Take discrete GPU if there's one, otherwise just take the first GPU
@@ -156,7 +176,14 @@ void Context::init_device() {
     }
 
     vk::PhysicalDeviceVulkan12Features vulkan_12_features{.bufferDeviceAddress = true};
-
+    vk::PhysicalDeviceAccelerationStructureFeaturesKHR raytracing_as_features{.pNext = &vulkan_12_features, .accelerationStructure = true};
+    vk::PhysicalDeviceRayTracingPipelineFeaturesKHR raytracing_pileline_features{
+        .pNext = &raytracing_as_features,
+        .rayTracingPipeline = true,
+    };
+    vk::PhysicalDeviceFeatures2 device_features{
+        .pNext = &raytracing_pileline_features,
+    };
     const float queue_priority = 1.0f;
     vk::DeviceQueueCreateInfo queue_create_info{.queueFamilyIndex = queue_family, .queueCount = 1u, .pQueuePriorities = &queue_priority};
     device = physical_device.createDevice(vk::DeviceCreateInfo{
