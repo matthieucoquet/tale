@@ -148,9 +148,9 @@ void Context::init_device() {
                 continue;
             if (!as_features.accelerationStructure)
                 continue;
-            // if (!vulkan_12_features.bufferDeviceAddress || !vulkan_12_features.uniformBufferStandardLayout || !vulkan_12_features.scalarBlockLayout ||
-            //     !vulkan_12_features.uniformAndStorageBuffer8BitAccess)
-            //     continue;
+            if (!vulkan_12_features.bufferDeviceAddress || !vulkan_12_features.uniformBufferStandardLayout || !vulkan_12_features.scalarBlockLayout /*||
+                !vulkan_12_features.uniformAndStorageBuffer8BitAccess*/)
+                continue;
         }
 
         // Take discrete GPU if there's one, otherwise just take the first GPU
@@ -175,7 +175,11 @@ void Context::init_device() {
         }
     }
 
-    vk::PhysicalDeviceVulkan12Features vulkan_12_features{.bufferDeviceAddress = true};
+    vk::PhysicalDeviceVulkan12Features vulkan_12_features{
+        .scalarBlockLayout = true,
+        .uniformBufferStandardLayout = true,
+        .bufferDeviceAddress = true,
+    };
     vk::PhysicalDeviceAccelerationStructureFeaturesKHR raytracing_as_features{.pNext = &vulkan_12_features, .accelerationStructure = true};
     vk::PhysicalDeviceRayTracingPipelineFeaturesKHR raytracing_pileline_features{
         .pNext = &raytracing_as_features,
@@ -187,7 +191,7 @@ void Context::init_device() {
     const float queue_priority = 1.0f;
     vk::DeviceQueueCreateInfo queue_create_info{.queueFamilyIndex = queue_family, .queueCount = 1u, .pQueuePriorities = &queue_priority};
     device = physical_device.createDevice(vk::DeviceCreateInfo{
-        .pNext = &vulkan_12_features,
+        .pNext = &device_features,
         .queueCreateInfoCount = 1u,
         .pQueueCreateInfos = &queue_create_info,
         .enabledExtensionCount = static_cast<uint32_t>(required_device_extensions.size()),

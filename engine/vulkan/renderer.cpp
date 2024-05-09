@@ -11,12 +11,12 @@ import tale.vulkan.monitor_swapchain;
 import tale.vulkan.buffer;
 import tale.vulkan.command_buffer;
 import tale.vulkan.image;
+import tale.vulkan.texture;
 
 namespace tale::vulkan {
 
 struct Per_frame {
-    Vma_image storage_image;
-    vk::ImageView storage_image_view;
+    Storage_texture render_texture;
 };
 
 export class Renderer {
@@ -29,13 +29,12 @@ public:
     ~Renderer();
 
     void reset_swapchain(Context& context);
+    void create_per_frame_data(Context& context, Scene& scene, vk::Extent2D extent, size_t command_pool_size);
 
 private:
     vk::Device device;
     Monitor_swapchain swapchain;
     std::vector<Per_frame> per_frame;
-
-    void create_per_frame_data(Context& context, Scene& scene, vk::Extent2D extent, size_t command_pool_size);
 };
 }
 
@@ -57,46 +56,9 @@ void Renderer::reset_swapchain(Context& context) {
 
 void Renderer::create_per_frame_data(Context& context, Scene& /*scene*/, vk::Extent2D extent, size_t command_pool_size) {
     per_frame.reserve(command_pool_size);
-    constexpr vk::Format storage_format = vk::Format::eR8G8B8A8Unorm;
     One_time_command_buffer command_buffer(device, context.command_pool, context.queue);
     for (size_t i = 0u; i < command_pool_size; i++) {
-        Vma_image image(
-            device, context.allocator,
-            vk::ImageCreateInfo{
-                .imageType = vk::ImageType::e2D,
-                .format = storage_format,
-                .extent = {extent.width, extent.height, 1},
-                .mipLevels = 1u,
-                .arrayLayers = 1u,
-                .samples = vk::SampleCountFlagBits::e1,
-                .tiling = vk::ImageTiling::eOptimal,
-                .usage = vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eStorage,
-                .sharingMode = vk::SharingMode::eExclusive,
-                .initialLayout = vk::ImageLayout::eUndefined
-            },
-            VmaAllocationCreateInfo{.usage = VMA_MEMORY_USAGE_AUTO}
-        );
-        auto image_view = device.createImageView(vk::ImageViewCreateInfo{
-            .image = image.image,
-            .viewType = vk::ImageViewType::e2D,
-            .format = storage_format,
-            .subresourceRange = {.aspectMask = vk::ImageAspectFlagBits::eColor, .baseMipLevel = 0u, .levelCount = 1u, .baseArrayLayer = 0u, .layerCount = 1u}
-        });
-        command_buffer.command_buffer.pipelineBarrier(
-            vk::PipelineStageFlagBits::eTopOfPipe, vk::PipelineStageFlagBits::eRayTracingShaderKHR, {}, {}, {},
-            vk::ImageMemoryBarrier{
-                .srcAccessMask = {},
-                .dstAccessMask = {},
-                .oldLayout = vk::ImageLayout::eUndefined,
-                .newLayout = vk::ImageLayout::eGeneral,
-                .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-                .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-                .image = image.image,
-                .subresourceRange = {.aspectMask = vk::ImageAspectFlagBits::eColor, .baseMipLevel = 0, .levelCount = 1u, .baseArrayLayer = 0, .layerCount = 1}
-            }
-        );
-
-        per_frame.push_back(Per_frame{.storage_image = std::move(image), .storage_image_view = image_view});
+        per_frame.push_back(Per_frame{.render_texture = Storage_texture(context, extent, command_buffer.command_buffer)});
     }
 }
 }

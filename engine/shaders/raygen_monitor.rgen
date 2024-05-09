@@ -1,0 +1,60 @@
+#version 460
+#extension GL_EXT_ray_tracing : enable
+#extension GL_EXT_nonuniform_qualifier : enable
+#extension GL_EXT_scalar_block_layout : enable
+#extension GL_GOOGLE_include_directive : enable
+
+struct Pose
+{
+    vec4 rotation;
+    vec3 position;
+};
+
+struct Fov
+{
+    float left;
+    float right;
+    float up;
+    float down;
+};
+
+layout(push_constant, scalar) uniform Eye {
+    Pose pose;
+    Fov fov;
+} eye;
+
+layout(binding = 0, set = 0) uniform accelerationStructureEXT acceleration_structure; 
+layout(binding = 1, set = 0, rgba16) uniform image2D image;
+
+layout(location = 0) rayPayloadEXT vec3 hit_value;
+
+void main()
+{
+    const vec2 pixel_center = vec2(gl_LaunchIDEXT.xy) + vec2(0.5);
+    const vec2 pixel_uv = pixel_center / vec2(gl_LaunchSizeEXT.xy);
+    vec3 direction = vec3(
+        tan(eye.fov.left) + (pixel_uv.x) * (tan(eye.fov.right) - tan(eye.fov.left)),
+        tan(eye.fov.up) + (pixel_uv.y) * (tan(eye.fov.down) - tan(eye.fov.up)),
+        -1.0);
+
+    direction = direction + 2.0 * cross(eye.pose.rotation.xyz, cross(eye.pose.rotation.xyz, direction) + eye.pose.rotation.w * direction);
+    direction = normalize(direction);
+
+    float tmin = 0.2;
+    float tmax = 120.0;
+
+    hit_value = vec3(0.0, 0.0, 0.0);
+    traceRayEXT(
+        acceleration_structure, 
+        gl_RayFlagsOpaqueEXT, 
+        0xFF, 0, 0, 0, 
+        eye.pose.position, 
+        tmin, 
+        direction.xyz, 
+        tmax, 
+        0);
+    imageStore(image, nonuniformEXT(ivec2(gl_LaunchIDEXT.xy)), vec4(hit_value, 1.0));
+}
+
+
+

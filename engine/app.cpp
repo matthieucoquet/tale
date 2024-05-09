@@ -6,6 +6,7 @@ export module tale.app;
 import tale.scene;
 import tale.window;
 import tale.vulkan;
+import tale.engine;
 
 namespace tale {
 export class App {
@@ -15,6 +16,7 @@ public:
     App(App&& other) = delete;
     App& operator=(const App& other) = delete;
     App& operator=(App&& other) = delete;
+    ~App();
 
     void run();
 
@@ -33,6 +35,7 @@ private:
     vulkan::Context context;
     vulkan::Reusable_command_pools command_pools;
     vulkan::Renderer renderer;
+    engine::Shader_system shader_system;
     // Input_system input_system;
     // Ui_system ui_system;
 };
@@ -42,18 +45,23 @@ private:
 module :private;
 
 static constexpr size_t size_command_buffers = 2u;
+static constexpr vk::Extent2D init_windows_size{1920, 1080};
 
 namespace tale {
 App::App():
     scene(),
-    window(1000, 800),
+    window(init_windows_size.width, init_windows_size.height),
     context(window),
     command_pools(context.device, context.queue_family, size_command_buffers),
-    renderer(context, size_command_buffers)
+    renderer(context, size_command_buffers),
+    shader_system(context, scene)
 //     input_system(window.window)
 {
+    renderer.create_per_frame_data(context, scene, init_windows_size, size_command_buffers);
     //     scene.screen_ratio = static_cast<float>(window.width) / static_cast<float>(window.height);
 }
+
+App::~App() { shader_system.cleanup(scene); }
 
 void App::run() {
     while (window.step()) {

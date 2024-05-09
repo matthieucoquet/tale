@@ -5,11 +5,15 @@
         "glm",
         "glfw3",
         "spdlog",
+        "glslang",
+        "shaderc",
         "stb",
         {
             "name": "imgui",
             "default-features": false,
-            "features": [ "glfw-binding" ]
-          }
+            "features": [
+                "glfw-binding"
+            ]
+        }
     ]
 }
