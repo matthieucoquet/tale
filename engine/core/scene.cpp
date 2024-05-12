@@ -16,9 +16,9 @@ struct Shader {
 
 struct Shaders {
     Shader raygen;
-    // Shader miss;
-    // Shader intersection;
-    // Shader closest_hit;
+    Shader miss;
+    Shader intersection;
+    Shader closest_hit;
 };
 
 export class Scene {
