@@ -1,4 +1,5 @@
 module;
+#include <compare>
 #include <glm/glm.hpp>
 export module tale.scene;
 import vulkan_hpp;

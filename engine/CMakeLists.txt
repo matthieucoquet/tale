@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.28)
+cmake_minimum_required(VERSION 3.30)
 
 find_package(glfw3 CONFIG REQUIRED)
 find_package(glm CONFIG REQUIRED)
@@ -26,7 +26,7 @@ target_sources(engine
     vulkan/context.cpp   
     vulkan/vulkan.cpp
     vulkan/command_buffer.cpp
-    vulkan/raytracing_pipeline.cpp
+    # vulkan/raytracing_pipeline.cpp
     vulkan/renderer.cpp
     vulkan/monitor_swapchain.cpp
     vulkan/texture.cpp
@@ -54,7 +54,7 @@ get_filename_component(shader_locations shaders ABSOLUTE)
 set_source_files_properties(engine/shader_system.cpp PROPERTIES COMPILE_DEFINITIONS SHADER_SOURCE="${shader_locations}")
 
 if (MSVC)
-    target_compile_options(engine PUBLIC /W4 /WX /permissive-)
+    target_compile_options(engine PUBLIC /W4 /WX /permissive- /wd5050)
 endif()
 
 add_library(tale::engine ALIAS engine)

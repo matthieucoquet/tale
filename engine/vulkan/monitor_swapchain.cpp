@@ -1,11 +1,8 @@
 module;
-#include <array>
-#include <compare>
-#include <cstdint>
-#include <stdexcept>
 #include <vma_includes.hpp>
 #include <vulkan/vulkan.h>
 export module tale.vulkan.monitor_swapchain;
+import std;
 import vulkan_hpp;
 import tale.vulkan.context;
 import tale.vulkan.image;

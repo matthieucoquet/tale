@@ -7,7 +7,3 @@ void main()
 {
     hit_value = vec3(0.2,0.2,0.8);
 }
-
-
-
-

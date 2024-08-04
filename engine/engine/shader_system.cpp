@@ -1,10 +1,9 @@
 module;
-#include <filesystem>
-#include <fstream>
 #include <shaderc/shaderc.hpp>
 #include <spdlog/spdlog.h>
 #include <vulkan/vulkan_hpp_macros.hpp>
 export module tale.engine.shader_system;
+import std;
 import vulkan_hpp;
 import tale.scene;
 import tale.engine.system;

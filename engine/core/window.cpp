@@ -3,6 +3,7 @@ module;
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 export module tale.window;
+import std;
 import vulkan_hpp;
 
 namespace tale {
