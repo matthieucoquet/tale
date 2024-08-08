@@ -12,6 +12,7 @@ import tale.vulkan.buffer;
 import tale.vulkan.command_buffer;
 import tale.vulkan.image;
 import tale.vulkan.texture;
+import tale.vulkan.raytracing_pipeline;
 
 namespace tale::vulkan {
 
@@ -21,7 +22,7 @@ struct Per_frame {
 
 export class Renderer {
 public:
-    Renderer(Context& context, size_t size_command_buffers);
+    Renderer(Context& context, Scene& scene, size_t size_command_buffers);
     Renderer(const Renderer& other) = delete;
     Renderer(Renderer&& other) = delete;
     Renderer& operator=(const Renderer& other) = delete;
@@ -34,6 +35,7 @@ public:
 private:
     vk::Device device;
     Monitor_swapchain swapchain;
+    Raytracing_pipeline pipeline;
     std::vector<Per_frame> per_frame;
 };
 }
@@ -41,9 +43,10 @@ private:
 module :private;
 
 namespace tale::vulkan {
-Renderer::Renderer(Context& context, size_t /*size_command_buffers*/):
+Renderer::Renderer(Context& context, Scene& scene, size_t /*size_command_buffers*/):
     device(context.device),
-    swapchain(context) {}
+    swapchain(context),
+    pipeline(context, scene) {}
 
 Renderer::~Renderer() { device.waitIdle(); }
 

@@ -141,7 +141,7 @@ void Context::init_device() {
             auto features = vk::PhysicalDeviceFeatures2{.pNext = &pipeline_features};
             potential_physical_device.getFeatures2(&features);
 
-            if (!pipeline_features.rayTracingPipeline)
+            if (!pipeline_features.rayTracingPipeline || !pipeline_features.rayTraversalPrimitiveCulling)
                 continue;
             if (!as_features.accelerationStructure)
                 continue;
@@ -180,7 +180,8 @@ void Context::init_device() {
     vk::PhysicalDeviceAccelerationStructureFeaturesKHR raytracing_as_features{.pNext = &vulkan_12_features, .accelerationStructure = true};
     vk::PhysicalDeviceRayTracingPipelineFeaturesKHR raytracing_pileline_features{
         .pNext = &raytracing_as_features,
-        .rayTracingPipeline = true,
+        .rayTracingPipeline = true, 
+        .rayTraversalPrimitiveCulling = true  // To skip triangles in ray pipeline, not sure if useful
     };
     vk::PhysicalDeviceFeatures2 device_features{
         .pNext = &raytracing_pileline_features,
