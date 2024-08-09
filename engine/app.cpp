@@ -34,8 +34,8 @@ private:
     Window window;
     vulkan::Context context;
     vulkan::Reusable_command_pools command_pools;
-    vulkan::Renderer renderer;
     engine::Shader_system shader_system;
+    vulkan::Renderer renderer;
     // Input_system input_system;
     // Ui_system ui_system;
 };
@@ -53,8 +53,8 @@ App::App():
     window(init_windows_size.width, init_windows_size.height),
     context(window),
     command_pools(context.device, context.queue_family, size_command_buffers),
-    renderer(context, size_command_buffers),
-    shader_system(context, scene)
+    shader_system(context, scene),
+    renderer(context, scene, size_command_buffers)
 //     input_system(window.window)
 {
     renderer.create_per_frame_data(context, scene, init_windows_size, size_command_buffers);

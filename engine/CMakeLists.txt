@@ -23,12 +23,13 @@ target_sources(engine
     engine/shader_system.cpp
     engine/system.cpp
     engine/engine.cpp
-    vulkan/context.cpp   
     vulkan/vulkan.cpp
+    vulkan/acceleration_structure.cpp
     vulkan/command_buffer.cpp
-    # vulkan/raytracing_pipeline.cpp
-    vulkan/renderer.cpp
+    vulkan/context.cpp   
     vulkan/monitor_swapchain.cpp
+    vulkan/raytracing_pipeline.cpp
+    vulkan/renderer.cpp
     vulkan/texture.cpp
     vulkan/vma_buffer.cpp
     vulkan/vma_image.cpp

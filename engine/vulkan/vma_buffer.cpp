@@ -42,7 +42,7 @@ public:
     }
 
 private:
-    vk::Device device;
+    vk::Device device = nullptr;
     VmaAllocator allocator;
     VmaAllocation allocation{};
 };
@@ -111,7 +111,7 @@ Buffer_from_staged::Buffer_from_staged(
     staging.unmap();
 
     buffer_info.usage |= vk::BufferUsageFlagBits::eTransferDst;
-    result = Vma_buffer(device, allocator, buffer_info, VmaAllocationCreateInfo{.usage = VMA_MEMORY_USAGE_AUTO});
+    result = Vma_buffer(device, allocator, buffer_info, VmaAllocationCreateInfo{.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE});
 
     command_buffer.copyBuffer(staging.buffer, result.buffer, vk::BufferCopy{.srcOffset = 0, .dstOffset = 0, .size = buffer_info.size});
 }

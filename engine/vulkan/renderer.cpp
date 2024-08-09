@@ -4,6 +4,7 @@ module;
 #include <stdexcept>
 #include <vma_includes.hpp>
 export module tale.vulkan.renderer;
+import std;
 import vulkan_hpp;
 import tale.scene;
 import tale.vulkan.context;
@@ -13,11 +14,13 @@ import tale.vulkan.command_buffer;
 import tale.vulkan.image;
 import tale.vulkan.texture;
 import tale.vulkan.raytracing_pipeline;
+import tale.vulkan.acceleration_structure;
 
 namespace tale::vulkan {
 
 struct Per_frame {
     Storage_texture render_texture;
+    Tlas tlas;
 };
 
 export class Renderer {
@@ -37,6 +40,7 @@ private:
     Monitor_swapchain swapchain;
     Raytracing_pipeline pipeline;
     std::vector<Per_frame> per_frame;
+    Blas blas;
 };
 }
 
@@ -46,7 +50,8 @@ namespace tale::vulkan {
 Renderer::Renderer(Context& context, Scene& scene, size_t /*size_command_buffers*/):
     device(context.device),
     swapchain(context),
-    pipeline(context, scene) {}
+    pipeline(context, scene),
+    blas(context) {}
 
 Renderer::~Renderer() { device.waitIdle(); }
 
@@ -61,7 +66,7 @@ void Renderer::create_per_frame_data(Context& context, Scene& /*scene*/, vk::Ext
     per_frame.reserve(command_pool_size);
     One_time_command_buffer command_buffer(device, context.command_pool, context.queue);
     for (size_t i = 0u; i < command_pool_size; i++) {
-        per_frame.push_back(Per_frame{.render_texture = Storage_texture(context, extent, command_buffer.command_buffer)});
+        per_frame.push_back(Per_frame{.render_texture = Storage_texture(context, extent, command_buffer.command_buffer), .tlas = {context, blas}});
     }
 }
 }

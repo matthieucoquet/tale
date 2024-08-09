@@ -62,7 +62,7 @@ Raytracing_pipeline::~Raytracing_pipeline() {
 }
 
 void Raytracing_pipeline::create_pipeline(Scene& scene) {
-    std::array bindings{
+    const std::array bindings{
         // Acceleration structure
         vk::DescriptorSetLayoutBinding{
             .binding = 0u,
@@ -80,19 +80,19 @@ void Raytracing_pipeline::create_pipeline(Scene& scene) {
         device.createDescriptorSetLayout(vk::DescriptorSetLayoutCreateInfo{.bindingCount = static_cast<uint32_t>(bindings.size()), .pBindings = bindings.data()}
         );
 
-    vk::PushConstantRange push_constants{.stageFlags = vk::ShaderStageFlagBits::eRaygenKHR, .offset = 0, .size = sizeof(Camera)};
+    const vk::PushConstantRange push_constants{.stageFlags = vk::ShaderStageFlagBits::eRaygenKHR, .offset = 0, .size = sizeof(Camera)};
 
     pipeline_layout = device.createPipelineLayout(vk::PipelineLayoutCreateInfo{
         .setLayoutCount = 1u, .pSetLayouts = &descriptor_set_layout, .pushConstantRangeCount = 1u, .pPushConstantRanges = &push_constants
     });
 
-    std::vector shader_stages{
+    const std::vector shader_stages{
         vk::PipelineShaderStageCreateInfo{.stage = vk::ShaderStageFlagBits::eRaygenKHR, .module = scene.shaders.raygen.module, .pName = "main"},
         vk::PipelineShaderStageCreateInfo{.stage = vk::ShaderStageFlagBits::eMissKHR, .module = scene.shaders.miss.module, .pName = "main"},
         vk::PipelineShaderStageCreateInfo{.stage = vk::ShaderStageFlagBits::eIntersectionKHR, .module = scene.shaders.intersection.module, .pName = "main"},
         vk::PipelineShaderStageCreateInfo{.stage = vk::ShaderStageFlagBits::eClosestHitKHR, .module = scene.shaders.closest_hit.module, .pName = "main"},
     };
-    std::vector groups{
+    const std::vector groups{
         // Raygen
         vk::RayTracingShaderGroupCreateInfoKHR{
             .type = vk::RayTracingShaderGroupTypeKHR::eGeneral,
@@ -165,7 +165,7 @@ void Raytracing_pipeline::create_shader_binding_table(Context& context) {
         shader_binding_table = std::move(buffer_and_staged.result);
     }
 
-    vk::DeviceAddress table_address = device.getBufferAddress(vk::BufferDeviceAddressInfo{.buffer = shader_binding_table.buffer});
+    const vk::DeviceAddress table_address = device.getBufferAddress(vk::BufferDeviceAddressInfo{.buffer = shader_binding_table.buffer});
     raygen_address_region.deviceAddress = table_address;
     miss_address_region.deviceAddress = table_address + offset_miss_group;
     hit_address_region.deviceAddress = table_address + offset_hit_group;
