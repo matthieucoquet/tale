@@ -11,6 +11,10 @@ import tale.vulkan.buffer;
 namespace tale::vulkan {
 export class Raytracing_pipeline {
 public:
+    vk::DescriptorSetLayout descriptor_set_layout;
+    vk::PipelineLayout pipeline_layout;
+    vk::Pipeline pipeline;
+
     vk::StridedDeviceAddressRegionKHR raygen_address_region{};
     vk::StridedDeviceAddressRegionKHR miss_address_region{};
     vk::StridedDeviceAddressRegionKHR hit_address_region{};
@@ -26,9 +30,6 @@ public:
 private:
     vk::Device device;
     vk::PhysicalDeviceRayTracingPipelinePropertiesKHR raytracing_properties;
-    vk::DescriptorSetLayout descriptor_set_layout;
-    vk::PipelineLayout pipeline_layout;
-    vk::Pipeline pipeline;
     Vma_buffer shader_binding_table{};
 
     uint32_t group_count;

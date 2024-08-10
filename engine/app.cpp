@@ -58,6 +58,8 @@ App::App():
 //     input_system(window.window)
 {
     renderer.create_per_frame_data(context, scene, init_windows_size, size_command_buffers);
+    renderer.create_descriptor_sets(context.descriptor_pool, size_command_buffers);
+
     //     scene.screen_ratio = static_cast<float>(window.width) / static_cast<float>(window.height);
 }
 
@@ -73,10 +75,10 @@ void App::run() {
         //     input_system.step();
         //     ui_system.step();
 
-        //     size_t command_pool_id = command_pools.find_next();
-        //     auto& command_buffer = command_pools.command_buffers[command_pool_id];
+        const size_t command_pool_id = command_pools.find_next();
+        auto& command_buffer = command_pools.command_buffers[command_pool_id];
         //     auto fence = command_pools.fences[command_pool_id];
-        //     renderer.draw(scene, command_buffer, fence, command_pool_id);
+        renderer.trace(command_buffer, command_pool_id, scene, init_windows_size);
     }
 }
 }

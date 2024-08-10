@@ -10,6 +10,8 @@ import tale.vulkan.command_buffer;
 namespace tale::vulkan {
 class Acceleration_structure {
 public:
+    vk::AccelerationStructureKHR acceleration_structure;
+
     Acceleration_structure(Context& context);
     Acceleration_structure(const Acceleration_structure& other) = delete;
     Acceleration_structure(Acceleration_structure&& other) noexcept;
@@ -18,11 +20,15 @@ public:
     ~Acceleration_structure();
 
 protected:
-    vk::AccelerationStructureKHR acceleration_structure;
     vk::Device device;
+    Vma_buffer buffer{};
+    Vma_buffer scratch_buffer{};
+    vk::DeviceAddress scratch_address;
+
+    void create_buffers(Context& context, const vk::AccelerationStructureBuildSizesInfoKHR& build_size);
 };
 
-export class Blas : Acceleration_structure {
+export class Blas : public Acceleration_structure {
 public:
     vk::DeviceAddress address;
 
@@ -34,12 +40,10 @@ public:
     ~Blas() = default;
 
 private:
-    Vma_buffer buffer{};
-    Vma_buffer aabbs_buffer{};
-    Vma_buffer scratch_buffer{};
+    Vma_buffer aabb_buffer{};
 };
 
-export class Tlas : Acceleration_structure {
+export class Tlas : public Acceleration_structure {
 public:
     Tlas(Context& context, const Blas& blas);
     Tlas(const Tlas& other) = delete;
@@ -47,6 +51,12 @@ public:
     Tlas& operator=(const Tlas& other) = delete;
     Tlas& operator=(Tlas&& other) = default;
     ~Tlas() = default;
+
+    void update(vk::CommandBuffer command_buffer, bool first_build);
+
+private:
+    Vma_buffer instance_buffer{};
+    vk::AccelerationStructureGeometryKHR acceleration_structure_geometry;
 };
 
 }
@@ -60,7 +70,10 @@ Acceleration_structure::Acceleration_structure(Context& context):
 
 Acceleration_structure::Acceleration_structure(Acceleration_structure&& other) noexcept:
     acceleration_structure(other.acceleration_structure),
-    device(other.device) {
+    device(other.device),
+    buffer(std::move(other.buffer)),
+    scratch_buffer(std::move(other.scratch_buffer)),
+    scratch_address(other.scratch_address) {
     other.acceleration_structure = nullptr;
     other.device = nullptr;
 }
@@ -68,6 +81,9 @@ Acceleration_structure::Acceleration_structure(Acceleration_structure&& other) n
 Acceleration_structure& Acceleration_structure::operator=(Acceleration_structure&& other) noexcept {
     std::swap(acceleration_structure, other.acceleration_structure);
     std::swap(device, other.device);
+    std::swap(buffer, other.buffer);
+    std::swap(scratch_buffer, other.scratch_buffer);
+    std::swap(scratch_address, other.scratch_address);
     return *this;
 }
 
@@ -78,11 +94,35 @@ Acceleration_structure::~Acceleration_structure() {
     }
 }
 
+void Acceleration_structure::create_buffers(Context& context, const vk::AccelerationStructureBuildSizesInfoKHR& build_size) {
+    buffer = Vma_buffer(
+        device, context.allocator,
+        vk::BufferCreateInfo{
+            .size = build_size.accelerationStructureSize,
+            .usage = vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eAccelerationStructureStorageKHR |
+                     vk::BufferUsageFlagBits::eShaderDeviceAddress
+            ,
+            .sharingMode = vk::SharingMode::eExclusive
+        },
+        VmaAllocationCreateInfo{.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE}
+    );
+    scratch_buffer = Vma_buffer(
+        device, context.allocator,
+        vk::BufferCreateInfo{
+            .size = std::max(build_size.buildScratchSize, build_size.updateScratchSize),
+            .usage = vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eShaderDeviceAddress,
+            .sharingMode = vk::SharingMode::eExclusive
+        },
+        VmaAllocationCreateInfo{.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE}
+    );
+    scratch_address = device.getBufferAddress(vk::BufferDeviceAddressInfo{.buffer = scratch_buffer.buffer});
+}
+
 Blas::Blas(Context& context):
     Acceleration_structure(context) {
     vk::AabbPositionsKHR aabb{-0.5f, -0.5f, -0.5f, 0.5f, 0.5f, 0.5f};
 
-    aabbs_buffer = Vma_buffer(
+    aabb_buffer = Vma_buffer(
         device, context.allocator,
         vk::BufferCreateInfo{
             .size = sizeof(vk::AabbPositionsKHR) * 1,
@@ -91,11 +131,11 @@ Blas::Blas(Context& context):
         },
         VmaAllocationCreateInfo{.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT, .usage = VMA_MEMORY_USAGE_AUTO}
     );
-    aabbs_buffer.map();
-    aabbs_buffer.copy(reinterpret_cast<void*>(&aabb), 1 * sizeof(vk::AabbPositionsKHR));
-    aabbs_buffer.unmap();
+    aabb_buffer.map();
+    aabb_buffer.copy(reinterpret_cast<void*>(&aabb), 1 * sizeof(vk::AabbPositionsKHR));
+    aabb_buffer.unmap();
 
-    const vk::DeviceAddress aabb_buffer_address = device.getBufferAddress(vk::BufferDeviceAddressInfo{.buffer = aabbs_buffer.buffer});
+    const vk::DeviceAddress aabb_buffer_address = device.getBufferAddress(vk::BufferDeviceAddressInfo{.buffer = aabb_buffer.buffer});
 
     vk::AccelerationStructureGeometryDataKHR geometry_data{};
     geometry_data.setAabbs(
@@ -116,27 +156,7 @@ Blas::Blas(Context& context):
 
     const vk::AccelerationStructureBuildSizesInfoKHR build_size =
         device.getAccelerationStructureBuildSizesKHR(vk::AccelerationStructureBuildTypeKHR::eDevice, geometry_info, 1u);
-
-    buffer = Vma_buffer(
-        device, context.allocator,
-        vk::BufferCreateInfo{
-            .size = build_size.accelerationStructureSize,
-            .usage = vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eAccelerationStructureStorageKHR |
-                     vk::BufferUsageFlagBits::eShaderDeviceAddress,
-            .sharingMode = vk::SharingMode::eExclusive
-        },
-        VmaAllocationCreateInfo{.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE}
-    );
-    scratch_buffer = Vma_buffer(
-        device, context.allocator,
-        vk::BufferCreateInfo{
-            .size = std::max(build_size.buildScratchSize, build_size.updateScratchSize),
-            .usage = vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eShaderDeviceAddress,
-            .sharingMode = vk::SharingMode::eExclusive
-        },
-        VmaAllocationCreateInfo{.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE}
-    );
-    const vk::DeviceAddress scratch_address = device.getBufferAddress(vk::BufferDeviceAddressInfo{.buffer = scratch_buffer.buffer});
+    create_buffers(context, build_size);
 
     acceleration_structure = device.createAccelerationStructureKHR(vk::AccelerationStructureCreateInfoKHR{
         .createFlags = {},
@@ -160,17 +180,78 @@ Blas::Blas(Context& context):
 Tlas::Tlas(Context& context, const Blas& blas):
     Acceleration_structure(context) {
 
-    vk::AccelerationStructureInstanceKHR instance{
+    const vk::AccelerationStructureInstanceKHR instance{
         .transform =
             {.matrix =
                  std::array<std::array<float, 4>, 3>{
-                     std::array<float, 4>{1.0f, 0.0f, 0.0f, 0.0f}, std::array<float, 4>{0.0f, 1.0f, 0.0f, 0.0f}, std::array<float, 4>{0.0f, 0.0f, 1.0f, 0.0f}
+                     std::array<float, 4>{1.0f, 0.0f, 0.0f, 0.0f}, std::array<float, 4>{0.0f, 1.0f, 0.0f, 10.0f}, std::array<float, 4>{0.0f, 0.0f, 1.0f, 0.0f}
                  }},
         .instanceCustomIndex = 0,
         .mask = 0xFF,
         .instanceShaderBindingTableRecordOffset = 0,
         .accelerationStructureReference = blas.address
     };
+
+    instance_buffer = Vma_buffer(
+        context.device, context.allocator,
+        vk::BufferCreateInfo{
+            .size = sizeof(vk::AccelerationStructureInstanceKHR) * 1,
+            .usage = vk::BufferUsageFlagBits::eAccelerationStructureBuildInputReadOnlyKHR | vk::BufferUsageFlagBits::eShaderDeviceAddress
+        },
+        VmaAllocationCreateInfo{.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT, .usage = VMA_MEMORY_USAGE_AUTO}
+    );
+    instance_buffer.map();
+    instance_buffer.copy(&instance, 1 * sizeof(vk::AccelerationStructureInstanceKHR));
+    instance_buffer.unmap();
+
+    const vk::DeviceAddress instance_buffer_address = device.getBufferAddress(vk::BufferDeviceAddressInfo{.buffer = instance_buffer.buffer});
+
+    vk::AccelerationStructureGeometryDataKHR geometry_data{};
+    geometry_data.setInstances(
+        vk::AccelerationStructureGeometryInstancesDataKHR{.arrayOfPointers = false, .data = vk::DeviceOrHostAddressConstKHR(instance_buffer_address)}
+    );
+
+    acceleration_structure_geometry = vk::AccelerationStructureGeometryKHR{.geometryType = vk::GeometryTypeKHR::eInstances, .geometry = geometry_data};
+
+    const vk::AccelerationStructureBuildGeometryInfoKHR geometry_info{
+        .type = vk::AccelerationStructureTypeKHR::eTopLevel,
+        .flags = vk::BuildAccelerationStructureFlagBitsKHR::ePreferFastTrace | vk::BuildAccelerationStructureFlagBitsKHR::eAllowUpdate,
+        .geometryCount = 1u,
+        .pGeometries = &acceleration_structure_geometry
+    };
+    const vk::AccelerationStructureBuildSizesInfoKHR build_size =
+        device.getAccelerationStructureBuildSizesKHR(vk::AccelerationStructureBuildTypeKHR::eDevice, geometry_info, 1u);
+    create_buffers(context, build_size);
+
+    acceleration_structure = device.createAccelerationStructureKHR(vk::AccelerationStructureCreateInfoKHR{
+        .createFlags = {},
+        .buffer = buffer.buffer,
+        .offset = 0u,
+        .size = build_size.accelerationStructureSize,
+        .type = vk::AccelerationStructureTypeKHR::eTopLevel
+    });
+
+    {
+        One_time_command_buffer command_buffer(context.device, context.command_pool, context.queue);
+        update(command_buffer.command_buffer, true);
+    }
+}
+
+void Tlas::update(vk::CommandBuffer command_buffer, bool first_build) {
+    const vk::AccelerationStructureBuildRangeInfoKHR build_range{.primitiveCount = 1u, .primitiveOffset = 0u, .firstVertex = 0u, .transformOffset = 0u};
+    command_buffer.buildAccelerationStructuresKHR(
+        vk::AccelerationStructureBuildGeometryInfoKHR{
+            .type = vk::AccelerationStructureTypeKHR::eTopLevel,
+            .flags = vk::BuildAccelerationStructureFlagBitsKHR::ePreferFastTrace | vk::BuildAccelerationStructureFlagBitsKHR::eAllowUpdate,
+            .mode = first_build ? vk::BuildAccelerationStructureModeKHR::eBuild : vk::BuildAccelerationStructureModeKHR::eUpdate,
+            .srcAccelerationStructure = first_build ? nullptr : acceleration_structure,
+            .dstAccelerationStructure = acceleration_structure,
+            .geometryCount = 1,
+            .pGeometries = &acceleration_structure_geometry,
+            .scratchData = scratch_address
+        },
+        &build_range
+    );
 }
 
 }
