@@ -184,7 +184,7 @@ Tlas::Tlas(Context& context, const Blas& blas):
         .transform =
             {.matrix =
                  std::array<std::array<float, 4>, 3>{
-                     std::array<float, 4>{1.0f, 0.0f, 0.0f, 0.0f}, std::array<float, 4>{0.0f, 1.0f, 0.0f, 10.0f}, std::array<float, 4>{0.0f, 0.0f, 1.0f, 0.0f}
+                     std::array<float, 4>{1.0f, 0.0f, 0.0f, 10.0f}, std::array<float, 4>{0.0f, 1.0f, 0.0f, 0.0f}, std::array<float, 4>{0.0f, 0.0f, 1.0f, 0.0f}
                  }},
         .instanceCustomIndex = 0,
         .mask = 0xFF,

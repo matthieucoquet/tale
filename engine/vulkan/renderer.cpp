@@ -35,7 +35,7 @@ public:
     void reset_swapchain(Context& context);
     void create_per_frame_data(Context& context, Scene& scene, vk::Extent2D extent, size_t command_pool_size);
     void create_descriptor_sets(vk::DescriptorPool descriptor_pool, size_t command_pool_size);
-    void trace(vk::CommandBuffer command_buffer, size_t command_pool_id, const Scene& scene, vk::Extent2D extent);
+    void trace(vk::CommandBuffer command_buffer, vk::Fence fence, size_t command_pool_id, const Scene& scene, vk::Extent2D extent);
 
 private:
     vk::Device device;
@@ -43,6 +43,7 @@ private:
     Raytracing_pipeline pipeline;
     std::vector<Per_frame> per_frame;
     Blas blas;
+    size_t size_command_buffers;
 
     std::vector<vk::DescriptorSet> descriptor_sets;
 };
@@ -51,15 +52,17 @@ private:
 module :private;
 
 namespace tale::vulkan {
-Renderer::Renderer(Context& context, Scene& scene, size_t /*size_command_buffers*/):
+Renderer::Renderer(Context& context, Scene& scene, size_t size_command):
     device(context.device),
-    swapchain(context),
+    swapchain(context, size_command),
     pipeline(context, scene),
-    blas(context) {}
+    blas(context),
+    size_command_buffers(size_command)
+{}
 
 Renderer::~Renderer() { device.waitIdle(); }
 
-void Renderer::trace(vk::CommandBuffer command_buffer, size_t command_pool_id, const Scene& scene, vk::Extent2D extent) {
+void Renderer::trace(vk::CommandBuffer command_buffer, vk::Fence fence, size_t command_pool_id, const Scene& scene, vk::Extent2D extent) {
     command_buffer.begin({.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
 
 
@@ -78,14 +81,16 @@ void Renderer::trace(vk::CommandBuffer command_buffer, size_t command_pool_id, c
         extent.width, extent.height, 1u
     );
 
-
+    swapchain.copy_image(command_buffer, per_frame[command_pool_id].render_texture.image.image, command_pool_id, extent);
+    command_buffer.end();
+    swapchain.present(command_buffer, fence, command_pool_id);
 }
 
 void Renderer::reset_swapchain(Context& context) {
     device.waitIdle();
     // We want to call the destructor before the constructor
     swapchain.~Monitor_swapchain();
-    [[maybe_unused]] Monitor_swapchain* s = new (&swapchain) Monitor_swapchain(context);
+    [[maybe_unused]] Monitor_swapchain* s = new (&swapchain) Monitor_swapchain(context, size_command_buffers);
 }
 
 void Renderer::create_per_frame_data(Context& context, Scene& /*scene*/, vk::Extent2D extent, size_t command_pool_size) {

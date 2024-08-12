@@ -136,7 +136,8 @@ void Context::init_device() {
         // Checking features
         {
             auto vulkan_12_features = vk::PhysicalDeviceVulkan12Features();
-            auto as_features = vk::PhysicalDeviceAccelerationStructureFeaturesKHR{.pNext = &vulkan_12_features};
+            auto sync_features = vk::PhysicalDeviceSynchronization2FeaturesKHR{.pNext = &vulkan_12_features};
+            auto as_features = vk::PhysicalDeviceAccelerationStructureFeaturesKHR{.pNext = &sync_features};
             auto pipeline_features = vk::PhysicalDeviceRayTracingPipelineFeaturesKHR{.pNext = &as_features};
             auto features = vk::PhysicalDeviceFeatures2{.pNext = &pipeline_features};
             potential_physical_device.getFeatures2(&features);
@@ -144,6 +145,8 @@ void Context::init_device() {
             if (!pipeline_features.rayTracingPipeline || !pipeline_features.rayTraversalPrimitiveCulling)
                 continue;
             if (!as_features.accelerationStructure)
+                continue;
+            if (!sync_features.synchronization2)
                 continue;
             if (!vulkan_12_features.bufferDeviceAddress || !vulkan_12_features.uniformBufferStandardLayout || !vulkan_12_features.scalarBlockLayout /*||
                 !vulkan_12_features.uniformAndStorageBuffer8BitAccess*/)
@@ -177,11 +180,12 @@ void Context::init_device() {
         .uniformBufferStandardLayout = true,
         .bufferDeviceAddress = true,
     };
-    vk::PhysicalDeviceAccelerationStructureFeaturesKHR raytracing_as_features{.pNext = &vulkan_12_features, .accelerationStructure = true};
+    vk::PhysicalDeviceSynchronization2FeaturesKHR sync_features{.pNext = &vulkan_12_features, .synchronization2 = true};
+    vk::PhysicalDeviceAccelerationStructureFeaturesKHR raytracing_as_features{.pNext = &sync_features, .accelerationStructure = true};
     vk::PhysicalDeviceRayTracingPipelineFeaturesKHR raytracing_pileline_features{
         .pNext = &raytracing_as_features,
-        .rayTracingPipeline = true, 
-        .rayTraversalPrimitiveCulling = true  // To skip triangles in ray pipeline, not sure if useful
+        .rayTracingPipeline = true,
+        .rayTraversalPrimitiveCulling = true // To skip triangles in ray pipeline, not sure if useful
     };
     vk::PhysicalDeviceFeatures2 device_features{
         .pNext = &raytracing_pileline_features,

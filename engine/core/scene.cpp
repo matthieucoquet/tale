@@ -15,8 +15,8 @@ struct Pose {
 struct Fov {
     float left = -0.5f;
     float right = 0.5f;
-    float up = 0.5f;
-    float down = -0.5f;
+    float up = 0.28f;
+    float down = -0.28f;
 };
 
 export struct Camera {
@@ -25,7 +25,7 @@ export struct Camera {
 };
 
 struct Sphere {
-    glm::vec3 position = {0.0f, 10.0f, 0.0f};
+    glm::vec3 position = {10.0f, 0.0f, 0.0f};
     float radius = 1.0f;
 };
 
