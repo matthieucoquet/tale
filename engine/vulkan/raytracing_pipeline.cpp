@@ -90,8 +90,8 @@ void Raytracing_pipeline::create_pipeline(Scene& scene) {
     const std::vector shader_stages{
         vk::PipelineShaderStageCreateInfo{.stage = vk::ShaderStageFlagBits::eRaygenKHR, .module = scene.shaders.raygen.module, .pName = "main"},
         vk::PipelineShaderStageCreateInfo{.stage = vk::ShaderStageFlagBits::eMissKHR, .module = scene.shaders.miss.module, .pName = "main"},
-        vk::PipelineShaderStageCreateInfo{.stage = vk::ShaderStageFlagBits::eIntersectionKHR, .module = scene.shaders.intersection.module, .pName = "main"},
-        vk::PipelineShaderStageCreateInfo{.stage = vk::ShaderStageFlagBits::eClosestHitKHR, .module = scene.shaders.closest_hit.module, .pName = "main"},
+        vk::PipelineShaderStageCreateInfo{.stage = vk::ShaderStageFlagBits::eIntersectionKHR, .module = scene.shaders.groups[0].primary_intersection.module, .pName = "main"},
+        vk::PipelineShaderStageCreateInfo{.stage = vk::ShaderStageFlagBits::eClosestHitKHR, .module = scene.shaders.groups[0].primary_closest_hit.module, .pName = "main"},
     };
     const std::vector groups{
         // Raygen

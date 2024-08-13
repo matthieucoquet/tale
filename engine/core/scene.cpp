@@ -3,6 +3,7 @@ module;
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 export module tale.scene;
+import std;
 import vulkan_hpp;
 
 namespace tale {
@@ -33,11 +34,16 @@ struct Shader {
     vk::ShaderModule module;
 };
 
+struct Shader_group {
+    std::string name;
+    Shader primary_intersection;
+    Shader primary_closest_hit;
+};
+
 struct Shaders {
     Shader raygen;
     Shader miss;
-    Shader intersection;
-    Shader closest_hit;
+    std::vector<Shader_group> groups;
 };
 
 export class Scene {
@@ -47,5 +53,9 @@ public:
     Shaders shaders;
 
     Scene() {}
+
+    void add_model(std::string model_name) { 
+        shaders.groups.push_back(Shader_group{.name = std::move(model_name)});
+    }
 };
 }

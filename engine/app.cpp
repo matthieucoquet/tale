@@ -3,6 +3,7 @@ module;
 // #include <imgui.h>
 #include <string_view>
 export module tale.app;
+import std;
 import tale.scene;
 import tale.window;
 import tale.vulkan;
@@ -11,7 +12,7 @@ import tale.engine;
 namespace tale {
 export class App {
 public:
-    App();
+    App(Scene scene, std::filesystem::path model_shader_path);
     App(const App& other) = delete;
     App(App&& other) = delete;
     App& operator=(const App& other) = delete;
@@ -48,12 +49,12 @@ static constexpr size_t size_command_buffers = 2u;
 static constexpr vk::Extent2D init_windows_size{1920, 1080};
 
 namespace tale {
-App::App():
-    scene(),
+App::App(Scene init_scene, std::filesystem::path model_shader_path):
+    scene(std::move(init_scene)),
     window(init_windows_size.width, init_windows_size.height),
     context(window),
     command_pools(context.device, context.queue_family, size_command_buffers),
-    shader_system(context, scene),
+    shader_system(context, scene, model_shader_path),
     renderer(context, scene, size_command_buffers)
 //     input_system(window.window)
 {
