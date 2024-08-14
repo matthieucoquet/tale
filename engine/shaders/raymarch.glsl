@@ -11,3 +11,14 @@ float raymarch(in Ray ray)
     }
     return -1.0;
 }
+
+vec3 normal(in vec3 position)
+{
+    vec2 e = vec2(1.0, -1.0) * 0.5773;
+    const float eps = 0.0025;
+    return normalize(
+        e.xyy * map(position + e.xyy * eps) +
+        e.yyx * map(position + e.yyx * eps) +
+        e.yxy * map(position + e.yxy * eps) +
+        e.xxx * map(position + e.xxx * eps));
+}
