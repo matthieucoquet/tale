@@ -20,13 +20,14 @@ target_sources(engine
     app.cpp
     core/scene.cpp
     core/window.cpp
+    engine/engine.cpp
+    engine/monitor_render_system.cpp
     engine/shader_system.cpp
     engine/system.cpp
-    engine/engine.cpp
     vulkan/vulkan.cpp
     vulkan/acceleration_structure.cpp
     vulkan/command_buffer.cpp
-    vulkan/context.cpp   
+    vulkan/context.cpp
     vulkan/monitor_swapchain.cpp
     vulkan/raytracing_pipeline.cpp
     vulkan/renderer.cpp

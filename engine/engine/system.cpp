@@ -7,7 +7,7 @@ namespace tale::engine {
 export class System {
 public:
     virtual ~System() = default;
-    virtual void step(Scene& scene) = 0;
+    virtual bool step(Scene& scene) = 0;
     virtual void cleanup(Scene& /*scene*/) {};
 };
 

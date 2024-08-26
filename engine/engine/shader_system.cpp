@@ -24,7 +24,7 @@ public:
     Shader_system& operator=(const Shader_system& other) = delete;
     Shader_system& operator=(Shader_system&& other) = delete;
     ~Shader_system() override final = default;
-    void step(Scene& scene) override final;
+    bool step(Scene& scene) override final;
 
     void cleanup(Scene& scene) override final;
 
@@ -105,7 +105,7 @@ Shader_system::Shader_system(vulkan::Context& context, Scene& scene, const std::
     }
 }
 
-void Shader_system::step(Scene& /*scene*/) {}
+bool Shader_system::step(Scene& /*scene*/) { return true; }
 
 void Shader_system::cleanup(Scene& scene) {
     device.destroyShaderModule(scene.shaders.raygen.module);
