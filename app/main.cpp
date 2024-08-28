@@ -12,7 +12,8 @@ class Demo_app : public tale::App {
 public:
     Demo_app() {
         scene.add_model("sphere");
-        // systems.push_back(std::make_unique<tale::engine::Monitor_render_system>(scene, std::filesystem::path(SHADER_SOURCE)));
+        systems.push_back(std::make_unique<tale::engine::Physics_system>());
+        systems.push_back(std::make_unique<tale::engine::Monitor_render_system>(scene, std::filesystem::path(SHADER_SOURCE)));
     }
 };
 

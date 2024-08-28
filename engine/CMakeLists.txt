@@ -8,6 +8,11 @@ find_package(spdlog REQUIRED)
 
 find_package(unofficial-shaderc CONFIG REQUIRED)
 
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake")
+# For now I use physx as a submodule to make sure to have the latest version
+# I could switch to the physx package from vcpkg to have the unofficial not up to date version
+find_package(physx MODULE REQUIRED)
+
 add_library(engine STATIC)
 target_sources(engine
     PRIVATE
@@ -22,6 +27,7 @@ target_sources(engine
     core/window.cpp
     engine/engine.cpp
     engine/monitor_render_system.cpp
+    engine/physics_system.cpp
     engine/shader_system.cpp
     engine/system.cpp
     vulkan/vulkan.cpp
@@ -43,6 +49,7 @@ target_link_libraries(engine
 #     imgui::imgui
     spdlog::spdlog
     vulkan_module
+    physx::physx
     PRIVATE
     glfw
     unofficial::shaderc::shaderc
