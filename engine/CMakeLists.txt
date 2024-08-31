@@ -49,10 +49,10 @@ target_link_libraries(engine
 #     imgui::imgui
     spdlog::spdlog
     vulkan_module
-    physx::physx
     PRIVATE
     glfw
     unofficial::shaderc::shaderc
+    physx::physx
 )
 
 target_include_directories(engine SYSTEM PRIVATE

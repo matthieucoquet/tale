@@ -22,7 +22,7 @@ function(find_physx_static_library lib_name lib_target lib_filename)
     add_library(${lib_target} STATIC IMPORTED)
     set_target_properties(${lib_target}
         PROPERTIES
-            IMPORTED_CONFIGURATIONS "RELEASE"
+            IMPORTED_CONFIGURATIONS "RELEASE DEBUG MINSIZEREL RELWITHDEBINFO"
             IMPORTED_LOCATION_RELEASE "${${lib_name}_LIBRARY_RELEASE}"         
             IMPORTED_LOCATION_DEBUG "${${lib_name}_LIBRARY_DEBUG}"
             INTERFACE_INCLUDE_DIRECTORIES "${physx_INCLUDE_DIR}"
@@ -47,6 +47,9 @@ find_physx_static_library("physx" "physx::physx" "PhysX_static_64")
 find_physx_static_library("physx_common" "physx::common" "PhysXCommon_static_64")
 find_physx_static_library("physx_foundation" "physx::foundation" "PhysXFoundation_static_64")
 find_physx_static_library("physx_extension" "physx::extension" "PhysXExtensions_static_64")
+find_physx_static_library("physx_pvd" "physx::pvd" "PhysXPvdSDK_static_64")
+
+
 
 include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(physx
