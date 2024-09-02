@@ -25,16 +25,11 @@ export struct Camera {
     Fov fov;
 };
 
-struct Sphere {
-    glm::vec3 position = {10.0f, 0.0f, 0.0f};
-    float radius = 1.0f;
-};
-
 struct Shader {
     vk::ShaderModule module;
 };
 
-struct Shader_group {
+struct Model_shaders {
     std::string name;
     Shader primary_intersection;
     Shader primary_closest_hit;
@@ -43,19 +38,36 @@ struct Shader_group {
 struct Shaders {
     Shader raygen;
     Shader miss;
-    std::vector<Shader_group> groups;
+    std::vector<Model_shaders> models;
+};
+
+export struct Transform {
+    glm::vec3 position{};
+    glm::quat rotation{1.0, 0.0, 0.0, 0.0};
+    float scale{1.0f};
+};
+
+export enum class Collision_shape { Sphere, Cube };
+
+export struct Entity {
+    Transform global_transform;
+    size_t model_index;
+    Collision_shape collision_shape;
 };
 
 export class Scene {
 public:
+    static constexpr unsigned int max_entities = 10u;
+
     Camera camera;
-    Sphere test_sphere;
+    std::vector<Entity> entities;
     Shaders shaders;
 
-    Scene() {}
+    Scene() { entities.reserve(max_entities); }
 
-    void add_model(std::string model_name) { 
-        shaders.groups.push_back(Shader_group{.name = std::move(model_name)});
+    size_t add_model(std::string model_name) {
+        shaders.models.push_back(Model_shaders{.name = std::move(model_name)});
+        return shaders.models.size() - 1;
     }
 };
 }

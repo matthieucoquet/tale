@@ -1,8 +1,13 @@
 module;
+#include <glm/glm.hpp>
+#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/gtx/quaternion.hpp>
+#include <glm/gtx/transform.hpp>
 #include <vma_includes.hpp>
 export module tale.vulkan.acceleration_structure;
 import std;
 import vulkan_hpp;
+import tale.scene;
 import tale.vulkan.context;
 import tale.vulkan.buffer;
 import tale.vulkan.command_buffer;
@@ -45,17 +50,18 @@ private:
 
 export class Tlas : public Acceleration_structure {
 public:
-    Tlas(Context& context, const Blas& blas);
+    Tlas(Context& context, const Blas& blas, Scene& scene);
     Tlas(const Tlas& other) = delete;
     Tlas(Tlas&& other) = default;
     Tlas& operator=(const Tlas& other) = delete;
     Tlas& operator=(Tlas&& other) = default;
     ~Tlas() = default;
 
-    void update(vk::CommandBuffer command_buffer, bool first_build);
+    void update(vk::CommandBuffer command_buffer, bool first_build, const Scene& scene);
 
 private:
     Vma_buffer instance_buffer{};
+    vk::DeviceAddress blas_address;
     vk::AccelerationStructureGeometryKHR acceleration_structure_geometry;
 };
 
@@ -100,8 +106,7 @@ void Acceleration_structure::create_buffers(Context& context, const vk::Accelera
         vk::BufferCreateInfo{
             .size = build_size.accelerationStructureSize,
             .usage = vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eAccelerationStructureStorageKHR |
-                     vk::BufferUsageFlagBits::eShaderDeviceAddress
-            ,
+                     vk::BufferUsageFlagBits::eShaderDeviceAddress,
             .sharingMode = vk::SharingMode::eExclusive
         },
         VmaAllocationCreateInfo{.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE}
@@ -177,32 +182,20 @@ Blas::Blas(Context& context):
     }
 }
 
-Tlas::Tlas(Context& context, const Blas& blas):
-    Acceleration_structure(context) {
-
-    const vk::AccelerationStructureInstanceKHR instance{
-        .transform =
-            {.matrix =
-                 std::array<std::array<float, 4>, 3>{
-                     std::array<float, 4>{1.0f, 0.0f, 0.0f, 10.0f}, std::array<float, 4>{0.0f, 1.0f, 0.0f, 0.0f}, std::array<float, 4>{0.0f, 0.0f, 1.0f, 0.0f}
-                 }},
-        .instanceCustomIndex = 0,
-        .mask = 0xFF,
-        .instanceShaderBindingTableRecordOffset = 0,
-        .accelerationStructureReference = blas.address
-    };
+Tlas::Tlas(Context& context, const Blas& blas, Scene& scene):
+    Acceleration_structure(context),
+    blas_address(blas.address) {
 
     instance_buffer = Vma_buffer(
         context.device, context.allocator,
         vk::BufferCreateInfo{
-            .size = sizeof(vk::AccelerationStructureInstanceKHR) * 1,
+            .size = sizeof(vk::AccelerationStructureInstanceKHR) * Scene::max_entities,
             .usage = vk::BufferUsageFlagBits::eAccelerationStructureBuildInputReadOnlyKHR | vk::BufferUsageFlagBits::eShaderDeviceAddress
         },
-        VmaAllocationCreateInfo{.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT, .usage = VMA_MEMORY_USAGE_AUTO}
+        VmaAllocationCreateInfo{
+            .flags = VMA_ALLOCATION_CREATE_MAPPED_BIT | VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT, .usage = VMA_MEMORY_USAGE_AUTO
+        }
     );
-    instance_buffer.map();
-    instance_buffer.copy(&instance, 1 * sizeof(vk::AccelerationStructureInstanceKHR));
-    instance_buffer.unmap();
 
     const vk::DeviceAddress instance_buffer_address = device.getBufferAddress(vk::BufferDeviceAddressInfo{.buffer = instance_buffer.buffer});
 
@@ -220,7 +213,7 @@ Tlas::Tlas(Context& context, const Blas& blas):
         .pGeometries = &acceleration_structure_geometry
     };
     const vk::AccelerationStructureBuildSizesInfoKHR build_size =
-        device.getAccelerationStructureBuildSizesKHR(vk::AccelerationStructureBuildTypeKHR::eDevice, geometry_info, 1u);
+        device.getAccelerationStructureBuildSizesKHR(vk::AccelerationStructureBuildTypeKHR::eDevice, geometry_info, Scene::max_entities);
     create_buffers(context, build_size);
 
     acceleration_structure = device.createAccelerationStructureKHR(vk::AccelerationStructureCreateInfoKHR{
@@ -233,12 +226,35 @@ Tlas::Tlas(Context& context, const Blas& blas):
 
     {
         One_time_command_buffer command_buffer(context.device, context.command_pool, context.queue);
-        update(command_buffer.command_buffer, true);
+        update(command_buffer.command_buffer, true, scene);
     }
 }
 
-void Tlas::update(vk::CommandBuffer command_buffer, bool first_build) {
-    const vk::AccelerationStructureBuildRangeInfoKHR build_range{.primitiveCount = 1u, .primitiveOffset = 0u, .firstVertex = 0u, .transformOffset = 0u};
+void Tlas::update(vk::CommandBuffer command_buffer, bool first_build, const Scene& scene) {
+    std::vector<vk::AccelerationStructureInstanceKHR> entities_instances{};
+    for (const auto& entity : scene.entities) {
+        glm::mat4 transform = glm::translate(entity.global_transform.position) * glm::toMat4(entity.global_transform.rotation) *
+                              glm::scale(glm::vec3(entity.global_transform.scale));
+        entities_instances.push_back(vk::AccelerationStructureInstanceKHR{
+            .transform =
+                {.matrix =
+                     std::array<std::array<float, 4>, 3>{
+                         std::array<float, 4>{transform[0][0], transform[1][0], transform[2][0], transform[3][0]},
+                         std::array<float, 4>{transform[0][1], transform[1][1], transform[2][1], transform[3][1]},
+                         std::array<float, 4>{transform[0][2], transform[1][2], transform[2][2], transform[3][2]}
+                     }},
+            .instanceCustomIndex = 0,
+            .mask = 0xFF,
+            .instanceShaderBindingTableRecordOffset = static_cast<uint32_t>(entity.model_index),
+            .accelerationStructureReference = blas_address
+        });
+    }
+    instance_buffer.copy(reinterpret_cast<const void*>(entities_instances.data()), entities_instances.size() * sizeof(vk::AccelerationStructureInstanceKHR));
+    instance_buffer.flush();
+
+    const vk::AccelerationStructureBuildRangeInfoKHR build_range{
+        .primitiveCount = static_cast<uint32_t>(scene.entities.size()), .primitiveOffset = 0u, .firstVertex = 0u, .transformOffset = 0u
+    };
     command_buffer.buildAccelerationStructuresKHR(
         vk::AccelerationStructureBuildGeometryInfoKHR{
             .type = vk::AccelerationStructureTypeKHR::eTopLevel,

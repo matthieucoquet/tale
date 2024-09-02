@@ -4,11 +4,12 @@ module;
 #include <spdlog/spdlog.h>
 export module tale.engine.physics_system;
 import tale.engine.system;
+import tale.scene;
 
 namespace tale::engine {
 export class Physics_system final : public System {
 public:
-    Physics_system();
+    Physics_system(Scene& scene);
     Physics_system(const Physics_system& other) = delete;
     Physics_system(Physics_system&& other) = delete;
     Physics_system& operator=(const Physics_system& other) = delete;
@@ -25,10 +26,9 @@ private:
     physx::PxFoundation* foundation = nullptr;
     physx::PxPhysics* physics = nullptr;
     physx::PxDefaultCpuDispatcher* dispatcher = nullptr;
-    physx::PxScene* scene = nullptr;
+    physx::PxScene* physics_scene = nullptr;
     physx::PxMaterial* material = nullptr;
     physx::PxPvd* pvd = nullptr;
-    physx::PxRigidDynamic* sphere = nullptr;
 };
 }
 
@@ -37,7 +37,7 @@ module :private;
 constexpr bool use_pvd = false;
 
 namespace tale::engine {
-Physics_system::Physics_system() {
+Physics_system::Physics_system(Scene& scene) {
     foundation = PxCreateFoundation(PX_PHYSICS_VERSION, allocator, error_callback);
 
     if constexpr (use_pvd) {
@@ -53,25 +53,32 @@ Physics_system::Physics_system() {
     scene_descriptor.gravity = physx::PxVec3(0.0f, 0.0f, -9.81f);
     scene_descriptor.cpuDispatcher = dispatcher;
     scene_descriptor.filterShader = physx::PxDefaultSimulationFilterShader;
-    scene = physics->createScene(scene_descriptor);
+    physics_scene = physics->createScene(scene_descriptor);
 
     material = physics->createMaterial(0.5f, 0.5f, 0.6f);
 
     physx::PxRigidStatic* ground_plane = PxCreatePlane(*physics, physx::PxPlane(0.0f, 0.0f, 1.0f, 0.0f), *material);
-    scene->addActor(*ground_plane);
+    physics_scene->addActor(*ground_plane);
 
-    physx::PxShape* shape = physics->createShape(physx::PxSphereGeometry(0.5f), *material);
-    physx::PxTransform transform(physx::PxVec3(0.0f, 0.0f, 2.0f));
-    sphere = physics->createRigidDynamic(transform);
-    sphere->attachShape(*shape);
-    physx::PxRigidBodyExt::updateMassAndInertia(*sphere, 10.0f);
-    scene->addActor(*sphere);
-
-    shape->release();
+    for (auto& entity : scene.entities) {
+        physx::PxShape* shape = nullptr; // TODO reuse shapes
+        if (entity.collision_shape == Collision_shape::Sphere) {
+            shape = physics->createShape(physx::PxSphereGeometry(0.5f), *material);
+        } else if (entity.collision_shape == Collision_shape::Cube) {
+            shape = physics->createShape(physx::PxBoxGeometry(0.5f, 0.5f, 0.5f), *material);
+        }
+        physx::PxTransform transform(physx::PxVec3(entity.global_transform.position.x, entity.global_transform.position.y, entity.global_transform.position.z));
+        physx::PxRigidDynamic* body = physics->createRigidDynamic(transform);
+        body->attachShape(*shape);
+        body->userData = static_cast<void*>(&entity);
+        physx::PxRigidBodyExt::updateMassAndInertia(*body, 10.0f);
+        physics_scene->addActor(*body);
+        shape->release();
+    }
 }
 
 Physics_system::~Physics_system() {
-    PX_RELEASE(scene);
+    PX_RELEASE(physics_scene);
     PX_RELEASE(dispatcher);
     PX_RELEASE(physics);
     if (pvd) {
@@ -83,13 +90,21 @@ Physics_system::~Physics_system() {
 }
 
 bool Physics_system::step(Scene& /*scene*/) {
-    scene->simulate(1.0f / 60.0f);
-    scene->fetchResults(true);
+    physics_scene->simulate(1.0f / 60.0f);
+    physics_scene->fetchResults(true);
 
-    const physx::PxTransform transform = sphere->getGlobalPose();
+    const auto nb_actors = physics_scene->getNbActors(physx::PxActorTypeFlag::eRIGID_DYNAMIC);
+    if (nb_actors) {
+        std::vector<physx::PxRigidActor*> actors(nb_actors);
+        physics_scene->getActors(physx::PxActorTypeFlag::eRIGID_DYNAMIC, reinterpret_cast<physx::PxActor**>(&actors[0]), nb_actors);
 
-    spdlog::info("{} {} {}", transform.p.x, transform.p.y, transform.p.z);
-
+        for (auto actor : actors) {
+            auto* entity = reinterpret_cast<Entity*>(actor->userData);
+            const physx::PxTransform transform = actor->getGlobalPose();
+            entity->global_transform.position = {transform.p.x, transform.p.y, transform.p.z};
+            entity->global_transform.rotation = {transform.q.w, transform.q.x, transform.q.y, transform.q.z};
+        }
+    }
     return true;
 }
 

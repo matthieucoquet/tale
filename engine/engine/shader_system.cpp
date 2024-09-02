@@ -99,9 +99,9 @@ Shader_system::Shader_system(vulkan::Context& context, Scene& scene, const std::
 
     scene.shaders.raygen.module = compile("raygen_monitor.rgen", shaderc_raygen_shader);
     scene.shaders.miss.module = compile("primary.rmiss", shaderc_miss_shader);
-    for (auto& group : scene.shaders.groups) {
-        group.primary_intersection.module = compile("primary.rint", shaderc_intersection_shader, group.name);
-        group.primary_closest_hit.module = compile("primary.rchit", shaderc_closesthit_shader, group.name);
+    for (auto& model : scene.shaders.models) {
+        model.primary_intersection.module = compile("primary.rint", shaderc_intersection_shader, model.name);
+        model.primary_closest_hit.module = compile("primary.rchit", shaderc_closesthit_shader, model.name);
     }
 }
 
@@ -110,9 +110,9 @@ bool Shader_system::step(Scene& /*scene*/) { return true; }
 void Shader_system::cleanup(Scene& scene) {
     device.destroyShaderModule(scene.shaders.raygen.module);
     device.destroyShaderModule(scene.shaders.miss.module);
-    for (auto& group : scene.shaders.groups) {
-        device.destroyShaderModule(group.primary_intersection.module);
-        device.destroyShaderModule(group.primary_closest_hit.module);
+    for (auto& model : scene.shaders.models) {
+        device.destroyShaderModule(model.primary_intersection.module);
+        device.destroyShaderModule(model.primary_closest_hit.module);
     }
 }
 

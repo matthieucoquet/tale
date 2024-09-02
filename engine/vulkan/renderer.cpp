@@ -57,31 +57,32 @@ Renderer::Renderer(Context& context, Scene& scene, size_t size_command):
     swapchain(context, size_command),
     pipeline(context, scene),
     blas(context),
-    size_command_buffers(size_command)
-{}
+    size_command_buffers(size_command) {}
 
 Renderer::~Renderer() { device.waitIdle(); }
 
 void Renderer::trace(vk::CommandBuffer command_buffer, vk::Fence fence, size_t command_pool_id, const Scene& scene, vk::Extent2D extent) {
     command_buffer.begin({.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
 
+    Per_frame& frame_data = per_frame[command_pool_id];
+    frame_data.tlas.update(command_buffer, false, scene);
 
     command_buffer.bindPipeline(vk::PipelineBindPoint::eRayTracingKHR, pipeline.pipeline);
     command_buffer.bindDescriptorSets(vk::PipelineBindPoint::eRayTracingKHR, pipeline.pipeline_layout, 0, descriptor_sets[command_pool_id], {});
 
     command_buffer.pushConstants(
-        pipeline.pipeline_layout,
-        vk::ShaderStageFlagBits::eRaygenKHR /* | vk::ShaderStageFlagBits::eIntersectionKHR | vk::ShaderStageFlagBits::eAnyHitKHR |
-            vk::ShaderStageFlagBits::eClosestHitKHR | vk::ShaderStageFlagBits::eMissKHR*/,
+        pipeline.pipeline_layout, vk::ShaderStageFlagBits::eRaygenKHR /* | vk::ShaderStageFlagBits::eIntersectionKHR | vk::ShaderStageFlagBits::eAnyHitKHR |
+                                      vk::ShaderStageFlagBits::eClosestHitKHR | vk::ShaderStageFlagBits::eMissKHR*/
+        ,
         0, sizeof(Camera), &scene.camera
     );
 
     command_buffer.traceRaysKHR(
-        &pipeline.raygen_address_region, &pipeline.miss_address_region, &pipeline.hit_address_region, &pipeline.callable_address_region,
-        extent.width, extent.height, 1u
+        &pipeline.raygen_address_region, &pipeline.miss_address_region, &pipeline.hit_address_region, &pipeline.callable_address_region, extent.width,
+        extent.height, 1u
     );
 
-    swapchain.copy_image(command_buffer, per_frame[command_pool_id].render_texture.image.image, command_pool_id, extent);
+    swapchain.copy_image(command_buffer, frame_data.render_texture.image.image, command_pool_id, extent);
     command_buffer.end();
     swapchain.present(command_buffer, fence, command_pool_id);
 }
@@ -93,11 +94,11 @@ void Renderer::reset_swapchain(Context& context) {
     [[maybe_unused]] Monitor_swapchain* s = new (&swapchain) Monitor_swapchain(context, size_command_buffers);
 }
 
-void Renderer::create_per_frame_data(Context& context, Scene& /*scene*/, vk::Extent2D extent, size_t command_pool_size) {
+void Renderer::create_per_frame_data(Context& context, Scene& scene, vk::Extent2D extent, size_t command_pool_size) {
     per_frame.reserve(command_pool_size);
     One_time_command_buffer command_buffer(device, context.command_pool, context.queue);
     for (size_t i = 0u; i < command_pool_size; i++) {
-        per_frame.push_back(Per_frame{.render_texture = Storage_texture(context, extent, command_buffer.command_buffer), .tlas = {context, blas}});
+        per_frame.push_back(Per_frame{.render_texture = Storage_texture(context, extent, command_buffer.command_buffer), .tlas = {context, blas, scene}});
     }
 }
 

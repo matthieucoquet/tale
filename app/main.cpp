@@ -11,8 +11,19 @@ VULKAN_HPP_DEFAULT_DISPATCH_LOADER_DYNAMIC_STORAGE
 class Demo_app : public tale::App {
 public:
     Demo_app() {
-        scene.add_model("sphere");
-        systems.push_back(std::make_unique<tale::engine::Physics_system>());
+        const auto sphere_id = scene.add_model("sphere");
+        const auto cube_id = scene.add_model("cube");
+
+        scene.camera.pose.position = {-10.0f, 0.0f, 2.0f};
+
+        scene.entities.push_back(tale::Entity{
+            .global_transform = {.position = {0.0f, -0.5f, 1.5f}, .scale = 1.0f}, .model_index = sphere_id, .collision_shape = tale::Collision_shape::Sphere
+        });
+        scene.entities.push_back(tale::Entity{
+            .global_transform = {.position = {0.0f, 0.1f, 3.5f}, .scale = 1.0f}, .model_index = cube_id, .collision_shape = tale::Collision_shape::Cube
+        });
+
+        systems.push_back(std::make_unique<tale::engine::Physics_system>(scene));
         systems.push_back(std::make_unique<tale::engine::Monitor_render_system>(scene, std::filesystem::path(SHADER_SOURCE)));
     }
 };
