@@ -50,14 +50,12 @@ Monitor_render_system::Monitor_render_system(Scene& scene, std::filesystem::path
 bool Monitor_render_system::step(Scene& scene) {
     if (!window.step())
         return false;
-    if (window.was_resized()) {
-        //         renderer.reset_swapchain(context);
-        //         scene.screen_ratio = static_cast<float>(window.width) / static_cast<float>(window.height);
+    if (window.width != 0 && window.height != 0) {
+        const size_t command_pool_id = command_pools.find_next();
+        auto& command_buffer = command_pools.command_buffers[command_pool_id];
+        auto fence = command_pools.fences[command_pool_id];
+        renderer.trace(command_buffer, fence, command_pool_id, scene, init_windows_size);
     }
-    const size_t command_pool_id = command_pools.find_next();
-    auto& command_buffer = command_pools.command_buffers[command_pool_id];
-    auto fence = command_pools.fences[command_pool_id];
-    renderer.trace(command_buffer, fence, command_pool_id, scene, init_windows_size);
     return true;
 }
 

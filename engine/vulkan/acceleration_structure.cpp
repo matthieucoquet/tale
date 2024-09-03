@@ -16,6 +16,7 @@ namespace tale::vulkan {
 class Acceleration_structure {
 public:
     vk::AccelerationStructureKHR acceleration_structure;
+    Vma_buffer buffer{};
 
     Acceleration_structure(Context& context);
     Acceleration_structure(const Acceleration_structure& other) = delete;
@@ -26,7 +27,6 @@ public:
 
 protected:
     vk::Device device;
-    Vma_buffer buffer{};
     Vma_buffer scratch_buffer{};
     vk::DeviceAddress scratch_address;
 

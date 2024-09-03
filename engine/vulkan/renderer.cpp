@@ -66,6 +66,19 @@ void Renderer::trace(vk::CommandBuffer command_buffer, vk::Fence fence, size_t c
 
     Per_frame& frame_data = per_frame[command_pool_id];
     frame_data.tlas.update(command_buffer, false, scene);
+    std::array barriers{
+        vk::BufferMemoryBarrier2KHR{
+            .srcStageMask = vk::PipelineStageFlagBits2::eAccelerationStructureBuildKHR,
+            .srcAccessMask = vk::AccessFlagBits2::eAccelerationStructureWriteKHR,
+            .dstStageMask = vk::PipelineStageFlagBits2::eRayTracingShaderKHR,
+            .dstAccessMask = vk::AccessFlagBits2::eAccelerationStructureReadKHR,
+            .buffer = frame_data.tlas.buffer.buffer, 
+            .size = VK_WHOLE_SIZE
+        }
+    };
+    command_buffer.pipelineBarrier2(
+        vk::DependencyInfoKHR{.bufferMemoryBarrierCount = static_cast<uint32_t>(barriers.size()), .pBufferMemoryBarriers = barriers.data()}
+    );
 
     command_buffer.bindPipeline(vk::PipelineBindPoint::eRayTracingKHR, pipeline.pipeline);
     command_buffer.bindDescriptorSets(vk::PipelineBindPoint::eRayTracingKHR, pipeline.pipeline_layout, 0, descriptor_sets[command_pool_id], {});

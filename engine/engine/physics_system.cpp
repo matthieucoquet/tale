@@ -98,11 +98,13 @@ bool Physics_system::step(Scene& /*scene*/) {
         std::vector<physx::PxRigidActor*> actors(nb_actors);
         physics_scene->getActors(physx::PxActorTypeFlag::eRIGID_DYNAMIC, reinterpret_cast<physx::PxActor**>(&actors[0]), nb_actors);
 
-        for (auto actor : actors) {
+        for (const auto& actor : actors) {
             auto* entity = reinterpret_cast<Entity*>(actor->userData);
             const physx::PxTransform transform = actor->getGlobalPose();
             entity->global_transform.position = {transform.p.x, transform.p.y, transform.p.z};
-            entity->global_transform.rotation = {transform.q.w, transform.q.x, transform.q.y, transform.q.z};
+
+            auto q = transform.q.getNormalized();
+            entity->global_transform.rotation = {q.w, q.x, q.y, q.z};
         }
     }
     return true;
