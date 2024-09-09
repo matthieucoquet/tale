@@ -75,6 +75,20 @@ void Raytracing_pipeline::create_pipeline(Scene& scene) {
         // Output storage image
         vk::DescriptorSetLayoutBinding{
             .binding = 1u, .descriptorType = vk::DescriptorType::eStorageImage, .descriptorCount = 1u, .stageFlags = vk::ShaderStageFlagBits::eRaygenKHR
+        },
+        // Materials
+        vk::DescriptorSetLayoutBinding{
+            .binding = 2u,
+            .descriptorType = vk::DescriptorType::eStorageBuffer,
+            .descriptorCount = 1u,
+            .stageFlags = vk::ShaderStageFlagBits::eClosestHitKHR | vk::ShaderStageFlagBits::eMissKHR
+        },
+        // Lights
+        vk::DescriptorSetLayoutBinding{
+            .binding = 3u,
+            .descriptorType = vk::DescriptorType::eStorageBuffer,
+            .descriptorCount = 1u,
+            .stageFlags = vk::ShaderStageFlagBits::eClosestHitKHR | vk::ShaderStageFlagBits::eMissKHR
         }
     };
 

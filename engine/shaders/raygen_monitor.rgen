@@ -34,7 +34,7 @@ void main()
     const vec2 pixel_uv = pixel_center / vec2(gl_LaunchSizeEXT.xy);
     vec3 direction = vec3(
         1.0,
-        tan(eye.fov.left) + (pixel_uv.x) * (tan(eye.fov.right) - tan(eye.fov.left)),
+        -(tan(eye.fov.left) + (pixel_uv.x) * (tan(eye.fov.right) - tan(eye.fov.left))),
         tan(eye.fov.up) + (pixel_uv.y) * (tan(eye.fov.down) - tan(eye.fov.up)));
 
     direction = direction + 2.0 * cross(eye.pose.rotation.xyz, cross(eye.pose.rotation.xyz, direction) + eye.pose.rotation.w * direction);

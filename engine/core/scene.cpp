@@ -41,13 +41,25 @@ struct Shaders {
     std::vector<Model_shaders> models;
 };
 
+export struct Material {
+    glm::vec4 color;
+    float ks;
+    float shininess;
+    float f0;
+};
+
+export struct Light {
+    glm::vec3 position;
+    glm::vec3 color;
+};
+
 export struct Transform {
     glm::vec3 position{};
     glm::quat rotation{1.0, 0.0, 0.0, 0.0};
     float scale{1.0f};
 };
 
-export enum class Collision_shape { Sphere, Cube };
+export enum class Collision_shape { Sphere, Cube, Plane };
 
 export struct Entity {
     Transform global_transform;
@@ -62,6 +74,9 @@ public:
     Camera camera;
     std::vector<Entity> entities;
     Shaders shaders;
+
+    std::vector<Material> materials;
+    std::vector<Light> lights;
 
     Scene() { entities.reserve(max_entities); }
 

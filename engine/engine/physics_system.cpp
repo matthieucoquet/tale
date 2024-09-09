@@ -57,23 +57,26 @@ Physics_system::Physics_system(Scene& scene) {
 
     material = physics->createMaterial(0.5f, 0.5f, 0.6f);
 
-    physx::PxRigidStatic* ground_plane = PxCreatePlane(*physics, physx::PxPlane(0.0f, 0.0f, 1.0f, 0.0f), *material);
-    physics_scene->addActor(*ground_plane);
-
     for (auto& entity : scene.entities) {
-        physx::PxShape* shape = nullptr; // TODO reuse shapes
-        if (entity.collision_shape == Collision_shape::Sphere) {
-            shape = physics->createShape(physx::PxSphereGeometry(0.5f), *material);
-        } else if (entity.collision_shape == Collision_shape::Cube) {
-            shape = physics->createShape(physx::PxBoxGeometry(0.5f, 0.5f, 0.5f), *material);
-        }
         physx::PxTransform transform(physx::PxVec3(entity.global_transform.position.x, entity.global_transform.position.y, entity.global_transform.position.z));
-        physx::PxRigidDynamic* body = physics->createRigidDynamic(transform);
-        body->attachShape(*shape);
-        body->userData = static_cast<void*>(&entity);
-        physx::PxRigidBodyExt::updateMassAndInertia(*body, 10.0f);
-        physics_scene->addActor(*body);
-        shape->release();
+        if (entity.collision_shape == Collision_shape::Plane) {
+            physx::PxRigidStatic* ground_plane = PxCreatePlane(*physics, physx::PxPlane(0.0f, 0.0f, 1.0f, 0.0f), *material);
+            physics_scene->addActor(*ground_plane);
+        } else {
+            physx::PxShape* shape = nullptr; // TODO reuse shapes
+            const auto scale = entity.global_transform.scale;
+            if (entity.collision_shape == Collision_shape::Sphere) {
+                shape = physics->createShape(physx::PxSphereGeometry(0.5f * scale), *material);
+            } else if (entity.collision_shape == Collision_shape::Cube) {
+                shape = physics->createShape(physx::PxBoxGeometry(0.5f * scale, 0.5f * scale, 0.5f * scale), *material);
+            }
+            physx::PxRigidDynamic* body = physics->createRigidDynamic(transform);
+            body->attachShape(*shape);
+            body->userData = static_cast<void*>(&entity);
+            physx::PxRigidBodyExt::updateMassAndInertia(*body, 10.0f);
+            physics_scene->addActor(*body);
+            shape->release();
+        }
     }
 }
 

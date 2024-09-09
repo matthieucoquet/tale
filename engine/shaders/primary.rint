@@ -7,11 +7,10 @@
 
 void main()
 {
-    Ray ray = Ray(gl_ObjectRayOriginEXT, gl_ObjectRayDirectionEXT);
-
-    float distance = raymarch(ray);
-    if (distance > 0.0)
+    const Ray ray = Ray(gl_ObjectRayOriginEXT, gl_ObjectRayDirectionEXT);
+    const Hit hit = raymarch(ray);
+    if (hit.distance > 0.0)
     {
-        reportIntersectionEXT(distance, 0);
+        reportIntersectionEXT(hit.distance, hit.material_id);
     }
 }

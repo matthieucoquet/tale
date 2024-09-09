@@ -248,7 +248,7 @@ void Context::init_descriptor_pool() {
     std::array pool_sizes{
         vk::DescriptorPoolSize{.type = vk::DescriptorType::eUniformBuffer, .descriptorCount = max_frames_in_flight},
         vk::DescriptorPoolSize{.type = vk::DescriptorType::eCombinedImageSampler, .descriptorCount = max_frames_in_flight},
-        vk::DescriptorPoolSize{.type = vk::DescriptorType::eStorageBuffer, .descriptorCount = max_frames_in_flight * 2}
+        vk::DescriptorPoolSize{.type = vk::DescriptorType::eStorageBuffer, .descriptorCount = max_frames_in_flight * 4}
     };
     descriptor_pool = device.createDescriptorPool(vk::DescriptorPoolCreateInfo{
         .maxSets = max_frames_in_flight, .poolSizeCount = static_cast<uint32_t>(pool_sizes.size()), .pPoolSizes = pool_sizes.data()
