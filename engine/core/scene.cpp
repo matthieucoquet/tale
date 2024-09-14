@@ -29,16 +29,14 @@ struct Shader {
     vk::ShaderModule module;
 };
 
-struct Model_shaders {
-    std::string name;
-    Shader primary_intersection;
-    Shader primary_closest_hit;
-};
-
-struct Shaders {
+struct Scene_shaders {
     Shader raygen;
     Shader miss;
-    std::vector<Model_shaders> models;
+};
+
+struct Model_shaders {
+    Shader primary_intersection;
+    Shader primary_closest_hit;
 };
 
 export struct Material {
@@ -61,28 +59,36 @@ export struct Transform {
 
 export enum class Collision_shape { Sphere, Cube, Plane };
 
+export struct Model {
+    std::string name;
+    Model_shaders shaders;
+    Collision_shape collision_shape;
+    std::array<glm::vec3, 2> bounding_box;
+};
+
 export struct Entity {
     Transform global_transform;
     size_t model_index;
-    Collision_shape collision_shape;
 };
 
 export class Scene {
 public:
     static constexpr unsigned int max_entities = 10u;
 
+    Scene_shaders shaders;
+    std::vector<Model> models;
+
     Camera camera;
     std::vector<Entity> entities;
-    Shaders shaders;
 
     std::vector<Material> materials;
     std::vector<Light> lights;
 
     Scene() { entities.reserve(max_entities); }
 
-    size_t add_model(std::string model_name) {
-        shaders.models.push_back(Model_shaders{.name = std::move(model_name)});
-        return shaders.models.size() - 1;
+    size_t add_model(std::string model_name, Collision_shape collision_shape, std::array<glm::vec3, 2> bounding_box) {
+        models.push_back(Model{.name = std::move(model_name), .collision_shape = collision_shape, .bounding_box = bounding_box});
+        return models.size() - 1;
     }
 };
 }

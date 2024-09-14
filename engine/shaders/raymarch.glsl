@@ -2,7 +2,7 @@ Hit raymarch(in Ray ray)
 {
     float len = length(ray.direction);
     float t = gl_RayTminEXT;
-    for (int i = 0; i < 256 && t < gl_RayTmaxEXT; i++)
+    for (int i = 0; i < 512 && t < gl_RayTmaxEXT; i++)
     {
         Hit hit = map(ray.origin + t * ray.direction);
         if(hit.distance < 0.0001) {

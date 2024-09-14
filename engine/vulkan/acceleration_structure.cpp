@@ -37,11 +37,11 @@ export class Blas : public Acceleration_structure {
 public:
     vk::DeviceAddress address;
 
-    Blas(Context& context);
+    Blas(Context& context, const Model& model);
     Blas(const Blas& other) = delete;
-    Blas(Blas&& other) = delete;
+    Blas(Blas&& other) = default;
     Blas& operator=(const Blas& other) = delete;
-    Blas& operator=(Blas&& other) = delete;
+    Blas& operator=(Blas&& other) = default;
     ~Blas() = default;
 
 private:
@@ -50,7 +50,7 @@ private:
 
 export class Tlas : public Acceleration_structure {
 public:
-    Tlas(Context& context, const Blas& blas, Scene& scene);
+    Tlas(Context& context, const std::vector<Blas>& blas, Scene& scene);
     Tlas(const Tlas& other) = delete;
     Tlas(Tlas&& other) = default;
     Tlas& operator=(const Tlas& other) = delete;
@@ -61,7 +61,7 @@ public:
 
 private:
     Vma_buffer instance_buffer{};
-    vk::DeviceAddress blas_address;
+    std::vector<vk::DeviceAddress> blas_addresses;
     vk::AccelerationStructureGeometryKHR acceleration_structure_geometry;
 };
 
@@ -123,9 +123,10 @@ void Acceleration_structure::create_buffers(Context& context, const vk::Accelera
     scratch_address = device.getBufferAddress(vk::BufferDeviceAddressInfo{.buffer = scratch_buffer.buffer});
 }
 
-Blas::Blas(Context& context):
+Blas::Blas(Context& context, const Model& model):
     Acceleration_structure(context) {
-    vk::AabbPositionsKHR aabb{-0.5f, -0.5f, -0.5f, 0.5f, 0.5f, 0.5f};
+    vk::AabbPositionsKHR aabb{model.bounding_box[0].x, model.bounding_box[0].y, model.bounding_box[0].z,
+                              model.bounding_box[1].x, model.bounding_box[1].y, model.bounding_box[1].z};
 
     aabb_buffer = Vma_buffer(
         device, context.allocator,
@@ -182,9 +183,14 @@ Blas::Blas(Context& context):
     }
 }
 
-Tlas::Tlas(Context& context, const Blas& blas, Scene& scene):
-    Acceleration_structure(context),
-    blas_address(blas.address) {
+Tlas::Tlas(Context& context, const std::vector<Blas>& blas, Scene& scene):
+    Acceleration_structure(context)
+    {
+    blas_addresses.reserve(blas.size());
+    for (const auto& b : blas) {
+        blas_addresses.push_back(b.address);
+    }
+
 
     instance_buffer = Vma_buffer(
         context.device, context.allocator,
@@ -246,7 +252,7 @@ void Tlas::update(vk::CommandBuffer command_buffer, bool first_build, const Scen
             .instanceCustomIndex = 0,
             .mask = 0xFF,
             .instanceShaderBindingTableRecordOffset = static_cast<uint32_t>(entity.model_index),
-            .accelerationStructureReference = blas_address
+                .accelerationStructureReference = blas_addresses[entity.model_index]
         });
     }
     instance_buffer.copy(reinterpret_cast<const void*>(entities_instances.data()), entities_instances.size() * sizeof(vk::AccelerationStructureInstanceKHR));

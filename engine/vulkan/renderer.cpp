@@ -44,7 +44,7 @@ private:
     Monitor_swapchain swapchain;
     Raytracing_pipeline pipeline;
     std::vector<Per_frame> per_frame;
-    Blas blas;
+    std::vector<Blas> blas; // One per model
     size_t size_command_buffers;
 
     std::vector<vk::DescriptorSet> descriptor_sets;
@@ -60,8 +60,12 @@ Renderer::Renderer(Context& context, Scene& scene, size_t size_command):
     device(context.device),
     swapchain(context, size_command),
     pipeline(context, scene),
-    blas(context),
-    size_command_buffers(size_command) {}
+    size_command_buffers(size_command) {
+    blas.reserve(scene.models.size());
+    for (const auto& model : scene.models) {
+        blas.push_back(Blas(context, model));
+    }
+    }
 
 Renderer::~Renderer() { device.waitIdle(); }
 

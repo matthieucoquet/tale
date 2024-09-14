@@ -1,5 +1,6 @@
-#define ADVANCE_RATIO 0.99
-#define BLUE_ID 1
+#define ADVANCE_RATIO 1.0
+#define WHITE_ID 2
+#define GRAY_ID 3
 
 float sd_box(in vec3 position, in vec3 half_sides)
 {
@@ -9,11 +10,11 @@ float sd_box(in vec3 position, in vec3 half_sides)
 
 Hit map(in vec3 position)
 {
-    float scale = 100.0;
-    position = position * scale;
     position.z += 0.5;
     position.xy -= 0.5;
-    position.xy = position.xy - clamp(round(position.xy), -50, 49);
-    float distance = sd_box(position, vec3(0.45, 0.45, 0.45)) - 0.05;
-    return Hit(distance / scale, BLUE_ID);
+    ivec2 id = ivec2(clamp(round(position.xy), -50, 49));
+    position.xy = position.xy - id;
+    float distance = sd_box(position, vec3(0.46, 0.46, 0.46)) - 0.04;
+    uint color_id = (id.x + id.y) % 2 == 0 ? WHITE_ID : GRAY_ID;
+    return Hit(distance, color_id);
 }

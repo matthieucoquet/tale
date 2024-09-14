@@ -118,15 +118,17 @@ void Raytracing_pipeline::create_pipeline(Scene& scene) {
             .generalShader = 1, // miss shader id
         },
     };
-    models_count = static_cast<uint32_t>(scene.shaders.models.size());
+    models_count = static_cast<uint32_t>(scene.models.size());
     shader_stages.reserve(shader_stages.size() + models_count * 2);
     groups.reserve(groups.size() + models_count);
-    for (const auto& model : scene.shaders.models) {
-        shader_stages.push_back(
-            vk::PipelineShaderStageCreateInfo{.stage = vk::ShaderStageFlagBits::eIntersectionKHR, .module = model.primary_intersection.module, .pName = "main"}
+    for (const auto& model : scene.models) {
+        shader_stages.push_back(vk::PipelineShaderStageCreateInfo{
+            .stage = vk::ShaderStageFlagBits::eIntersectionKHR, .module = model.shaders.primary_intersection.module, .pName = "main"
+        }
         );
-        shader_stages.push_back(
-            vk::PipelineShaderStageCreateInfo{.stage = vk::ShaderStageFlagBits::eClosestHitKHR, .module = model.primary_closest_hit.module, .pName = "main"}
+        shader_stages.push_back(vk::PipelineShaderStageCreateInfo{
+            .stage = vk::ShaderStageFlagBits::eClosestHitKHR, .module = model.shaders.primary_closest_hit.module, .pName = "main"
+        }
         );
         groups.push_back(vk::RayTracingShaderGroupCreateInfoKHR{
             .type = vk::RayTracingShaderGroupTypeKHR::eProceduralHitGroup,

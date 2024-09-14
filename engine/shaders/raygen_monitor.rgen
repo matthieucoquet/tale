@@ -28,9 +28,9 @@ layout(binding = 1, set = 0, rgba16) uniform image2D image;
 
 layout(location = 0) rayPayloadEXT vec3 hit_value;
 
-void main()
+vec3 trace(vec2 offset)
 {
-    const vec2 pixel_center = vec2(gl_LaunchIDEXT.xy) + vec2(0.5);
+    const vec2 pixel_center = vec2(gl_LaunchIDEXT.xy) + offset;
     const vec2 pixel_uv = pixel_center / vec2(gl_LaunchSizeEXT.xy);
     vec3 direction = vec3(
         1.0,
@@ -53,8 +53,16 @@ void main()
         direction.xyz, 
         tmax, 
         0);
-    
-    imageStore(image, nonuniformEXT(ivec2(gl_LaunchIDEXT.xy)), vec4(hit_value, 1.0));
+    return hit_value;
+}
+
+void main()
+{
+    vec3 color = 0.25 * trace(vec2(0.25, 0.25));
+    color += 0.25 * trace(vec2(0.25, 0.75));
+    color += 0.25 * trace(vec2(0.75, 0.25));
+    color += 0.25 * trace(vec2(0.75, 0.75));
+    imageStore(image, nonuniformEXT(ivec2(gl_LaunchIDEXT.xy)), vec4(color, 1.0));
 }
 
 

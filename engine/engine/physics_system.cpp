@@ -59,15 +59,16 @@ Physics_system::Physics_system(Scene& scene) {
 
     for (auto& entity : scene.entities) {
         physx::PxTransform transform(physx::PxVec3(entity.global_transform.position.x, entity.global_transform.position.y, entity.global_transform.position.z));
-        if (entity.collision_shape == Collision_shape::Plane) {
+        const Model& model = scene.models[entity.model_index];
+        if (model.collision_shape == Collision_shape::Plane) {
             physx::PxRigidStatic* ground_plane = PxCreatePlane(*physics, physx::PxPlane(0.0f, 0.0f, 1.0f, 0.0f), *material);
             physics_scene->addActor(*ground_plane);
         } else {
             physx::PxShape* shape = nullptr; // TODO reuse shapes
             const auto scale = entity.global_transform.scale;
-            if (entity.collision_shape == Collision_shape::Sphere) {
+            if (model.collision_shape == Collision_shape::Sphere) {
                 shape = physics->createShape(physx::PxSphereGeometry(0.5f * scale), *material);
-            } else if (entity.collision_shape == Collision_shape::Cube) {
+            } else if (model.collision_shape == Collision_shape::Cube) {
                 shape = physics->createShape(physx::PxBoxGeometry(0.5f * scale, 0.5f * scale, 0.5f * scale), *material);
             }
             physx::PxRigidDynamic* body = physics->createRigidDynamic(transform);
