@@ -76,7 +76,7 @@ void Context::init_instance(const Window& window) {
         spdlog::debug("\t{}", required_extension);
     }
 
-    constexpr std::array required_layers{"VK_LAYER_KHRONOS_validation"};
+    constexpr std::array required_layers{"VK_LAYER_KHRONOS_validation", "VK_LAYER_LUNARG_monitor"};
 
     vk::ApplicationInfo app_info{.pApplicationName = "tale", .apiVersion = VK_API_VERSION_1_3};
     instance = vk::createInstance(vk::InstanceCreateInfo{

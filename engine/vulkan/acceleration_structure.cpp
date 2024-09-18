@@ -149,7 +149,7 @@ Blas::Blas(Context& context, const Model& model):
     );
 
     const vk::AccelerationStructureGeometryKHR acceleration_structure_geometry{
-        .geometryType = vk::GeometryTypeKHR::eAabbs, .geometry = geometry_data, .flags = vk::GeometryFlagBitsKHR::eOpaque
+        .geometryType = vk::GeometryTypeKHR::eAabbs, .geometry = geometry_data,
     };
 
     vk::AccelerationStructureBuildGeometryInfoKHR geometry_info{
@@ -251,8 +251,8 @@ void Tlas::update(vk::CommandBuffer command_buffer, bool first_build, const Scen
                      }},
             .instanceCustomIndex = 0,
             .mask = 0xFF,
-            .instanceShaderBindingTableRecordOffset = static_cast<uint32_t>(entity.model_index),
-                .accelerationStructureReference = blas_addresses[entity.model_index]
+            .instanceShaderBindingTableRecordOffset = static_cast<uint32_t>(3 * entity.model_index),
+            .accelerationStructureReference = blas_addresses[entity.model_index]
         });
     }
     instance_buffer.copy(reinterpret_cast<const void*>(entities_instances.data()), entities_instances.size() * sizeof(vk::AccelerationStructureInstanceKHR));

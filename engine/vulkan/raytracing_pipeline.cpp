@@ -70,7 +70,7 @@ void Raytracing_pipeline::create_pipeline(Scene& scene) {
             .binding = 0u,
             .descriptorType = vk::DescriptorType::eAccelerationStructureKHR,
             .descriptorCount = 1u,
-            .stageFlags = vk::ShaderStageFlagBits::eRaygenKHR
+            .stageFlags = vk::ShaderStageFlagBits::eRaygenKHR | vk::ShaderStageFlagBits::eClosestHitKHR
         },
         // Output storage image
         vk::DescriptorSetLayoutBinding{
@@ -96,7 +96,12 @@ void Raytracing_pipeline::create_pipeline(Scene& scene) {
         device.createDescriptorSetLayout(vk::DescriptorSetLayoutCreateInfo{.bindingCount = static_cast<uint32_t>(bindings.size()), .pBindings = bindings.data()}
         );
 
-    const vk::PushConstantRange push_constants{.stageFlags = vk::ShaderStageFlagBits::eRaygenKHR, .offset = 0, .size = sizeof(Camera)};
+    const vk::PushConstantRange push_constants{
+        .stageFlags = vk::ShaderStageFlagBits::eRaygenKHR | vk::ShaderStageFlagBits::eIntersectionKHR | vk::ShaderStageFlagBits::eClosestHitKHR |
+                      vk::ShaderStageFlagBits::eAnyHitKHR,
+        .offset = 0,
+        .size = sizeof(Camera)
+    };
 
     pipeline_layout = device.createPipelineLayout(vk::PipelineLayoutCreateInfo{
         .setLayoutCount = 1u, .pSetLayouts = &descriptor_set_layout, .pushConstantRangeCount = 1u, .pPushConstantRanges = &push_constants
@@ -104,7 +109,11 @@ void Raytracing_pipeline::create_pipeline(Scene& scene) {
 
     std::vector shader_stages{
         vk::PipelineShaderStageCreateInfo{.stage = vk::ShaderStageFlagBits::eRaygenKHR, .module = scene.shaders.raygen.module, .pName = "main"},
-        vk::PipelineShaderStageCreateInfo{.stage = vk::ShaderStageFlagBits::eMissKHR, .module = scene.shaders.miss.module, .pName = "main"},
+        vk::PipelineShaderStageCreateInfo{.stage = vk::ShaderStageFlagBits::eMissKHR, .module = scene.shaders.primary_miss.module, .pName = "main"},
+        vk::PipelineShaderStageCreateInfo{.stage = vk::ShaderStageFlagBits::eMissKHR, .module = scene.shaders.shadow_ao_miss.module, .pName = "main"},
+        vk::PipelineShaderStageCreateInfo{
+            .stage = vk::ShaderStageFlagBits::eIntersectionKHR, .module = scene.shaders.shadow_ao_intersection.module, .pName = "main"
+        },
     };
     std::vector groups{
         // Raygen
@@ -112,29 +121,54 @@ void Raytracing_pipeline::create_pipeline(Scene& scene) {
             .type = vk::RayTracingShaderGroupTypeKHR::eGeneral,
             .generalShader = 0, // raygen shader id
         },
-        // Miss
+        // Primary Miss
         vk::RayTracingShaderGroupCreateInfoKHR{
             .type = vk::RayTracingShaderGroupTypeKHR::eGeneral,
-            .generalShader = 1, // miss shader id
+            .generalShader = 1, // primary miss shader id
+        },
+        // Shadow/Ambient Occlusion Miss
+        vk::RayTracingShaderGroupCreateInfoKHR{
+            .type = vk::RayTracingShaderGroupTypeKHR::eGeneral,
+            .generalShader = 2, // shadow/ao miss shader id
         },
     };
     models_count = static_cast<uint32_t>(scene.models.size());
-    shader_stages.reserve(shader_stages.size() + models_count * 2);
-    groups.reserve(groups.size() + models_count);
+    shader_stages.reserve(shader_stages.size() + models_count * 4);
+    groups.reserve(groups.size() + models_count * 3);
     for (const auto& model : scene.models) {
+        // Primary
+        groups.push_back(vk::RayTracingShaderGroupCreateInfoKHR{
+            .type = vk::RayTracingShaderGroupTypeKHR::eProceduralHitGroup,
+            .closestHitShader = static_cast<uint32_t>(shader_stages.size() + 1),
+            .intersectionShader = static_cast<uint32_t>(shader_stages.size())
+        });
+        // Shadow
+        groups.push_back(vk::RayTracingShaderGroupCreateInfoKHR{
+            .type = vk::RayTracingShaderGroupTypeKHR::eProceduralHitGroup,
+            .anyHitShader = static_cast<uint32_t>(shader_stages.size() + 2),
+            .intersectionShader = 3
+        });
+        // Ambient Occlusion
+        groups.push_back(vk::RayTracingShaderGroupCreateInfoKHR{
+            .type = vk::RayTracingShaderGroupTypeKHR::eProceduralHitGroup,
+            .anyHitShader = static_cast<uint32_t>(shader_stages.size() + 3),
+            .intersectionShader = 3
+        });
+
         shader_stages.push_back(vk::PipelineShaderStageCreateInfo{
             .stage = vk::ShaderStageFlagBits::eIntersectionKHR, .module = model.shaders.primary_intersection.module, .pName = "main"
         }
         );
         shader_stages.push_back(vk::PipelineShaderStageCreateInfo{
             .stage = vk::ShaderStageFlagBits::eClosestHitKHR, .module = model.shaders.primary_closest_hit.module, .pName = "main"
+        });
+        shader_stages.push_back(
+            vk::PipelineShaderStageCreateInfo{.stage = vk::ShaderStageFlagBits::eAnyHitKHR, .module = model.shaders.shadow_any_hit.module, .pName = "main"}
+        );
+        shader_stages.push_back(vk::PipelineShaderStageCreateInfo{
+            .stage = vk::ShaderStageFlagBits::eAnyHitKHR, .module = model.shaders.ambient_occlusion_any_hit.module, .pName = "main"
         }
         );
-        groups.push_back(vk::RayTracingShaderGroupCreateInfoKHR{
-            .type = vk::RayTracingShaderGroupTypeKHR::eProceduralHitGroup,
-            .closestHitShader = static_cast<uint32_t>(shader_stages.size() - 1),
-            .intersectionShader = static_cast<uint32_t>(shader_stages.size() - 2)
-        });
     }
 
     group_count = static_cast<uint32_t>(groups.size());
@@ -148,7 +182,7 @@ void Raytracing_pipeline::create_pipeline(Scene& scene) {
                            .pStages = shader_stages.data(),
                            .groupCount = static_cast<uint32_t>(groups.size()),
                            .pGroups = groups.data(),
-                           .maxPipelineRayRecursionDepth = 1,
+                           .maxPipelineRayRecursionDepth = 2,
                            .layout = pipeline_layout
                        }
                    )
@@ -167,9 +201,9 @@ void Raytracing_pipeline::create_shader_binding_table(Context& context) {
     const uint32_t base_alignment = raytracing_properties.shaderGroupBaseAlignment;
     raygen_address_region.size = align_up(handle_size_aligned, base_alignment);
     raygen_address_region.stride = raygen_address_region.size;
-    miss_address_region.size = align_up(1 * handle_size_aligned, base_alignment);
+    miss_address_region.size = align_up(2 * handle_size_aligned, base_alignment);
     miss_address_region.stride = handle_size_aligned;
-    hit_address_region.size = align_up(models_count * handle_size_aligned, base_alignment);
+    hit_address_region.size = align_up(3 * models_count * handle_size_aligned, base_alignment);
     hit_address_region.stride = handle_size_aligned;
 
     const vk::DeviceSize table_size = raygen_address_region.size + miss_address_region.size + hit_address_region.size + callable_address_region.size;
@@ -182,8 +216,15 @@ void Raytracing_pipeline::create_shader_binding_table(Context& context) {
     memcpy(temp_table.data(), handles_data.data(), handle_size);
     // Copy miss
     memcpy(temp_table.data() + offset_miss_group, handles_data.data() + 1 * handle_size, handle_size);
+    memcpy(temp_table.data() + offset_miss_group + handle_size_aligned, handles_data.data() + 2 * handle_size, handle_size);
     // Copy hit
-    memcpy(temp_table.data() + offset_hit_group, handles_data.data() + 2 * handle_size, models_count * handle_size);
+    for (uint32_t i = 0; i < models_count; ++i) {
+        memcpy(temp_table.data() + offset_hit_group + i * 3 * handle_size_aligned, handles_data.data() + (3 + 3 * i) * handle_size, handle_size);
+        memcpy(temp_table.data() + offset_hit_group + (i * 3 + 1) * handle_size_aligned, handles_data.data() + (3 + 3 * i + 1) * handle_size, handle_size);
+        memcpy(temp_table.data() + offset_hit_group + (i * 3 + 2) * handle_size_aligned, handles_data.data() + (3 + 3 * i + 2) * handle_size, handle_size);
+
+    }
+    //memcpy(temp_table.data() + offset_hit_group, handles_data.data() + 3 * handle_size, 3 * models_count * handle_size);
 
     {
         One_time_command_buffer command_buffer(context.device, context.command_pool, context.queue);

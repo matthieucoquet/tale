@@ -9,6 +9,6 @@ float sd_box(in vec3 position, in vec3 half_sides)
 
 Hit map(in vec3 position)
 {
-    float distance = sd_box(position, vec3(0.4, 0.4, 0.4));
-    return Hit(distance - 0.1, BLUE_ID);
+    float distance = sd_box(position, vec3(0.45));
+    return Hit(distance - 0.05, BLUE_ID);
 }

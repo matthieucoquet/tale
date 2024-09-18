@@ -31,12 +31,16 @@ struct Shader {
 
 struct Scene_shaders {
     Shader raygen;
-    Shader miss;
+    Shader primary_miss;
+    Shader shadow_ao_miss;
+    Shader shadow_ao_intersection;
 };
 
 struct Model_shaders {
     Shader primary_intersection;
     Shader primary_closest_hit;
+    Shader shadow_any_hit;
+    Shader ambient_occlusion_any_hit;
 };
 
 export struct Material {
@@ -73,7 +77,7 @@ export struct Entity {
 
 export class Scene {
 public:
-    static constexpr unsigned int max_entities = 10u;
+    static constexpr unsigned int max_entities = 100u;
 
     Scene_shaders shaders;
     std::vector<Model> models;

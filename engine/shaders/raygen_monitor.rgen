@@ -4,6 +4,8 @@
 #extension GL_EXT_scalar_block_layout : enable
 #extension GL_GOOGLE_include_directive : enable
 
+#define SUPER_SAMPLE
+
 struct Pose
 {
     vec4 rotation;
@@ -58,10 +60,14 @@ vec3 trace(vec2 offset)
 
 void main()
 {
+#ifdef SUPER_SAMPLE
     vec3 color = 0.25 * trace(vec2(0.25, 0.25));
     color += 0.25 * trace(vec2(0.25, 0.75));
     color += 0.25 * trace(vec2(0.75, 0.25));
     color += 0.25 * trace(vec2(0.75, 0.75));
+#else
+	vec3 color = trace(vec2(0.5, 0.5));
+#endif
     imageStore(image, nonuniformEXT(ivec2(gl_LaunchIDEXT.xy)), vec4(color, 1.0));
 }
 

@@ -9,6 +9,18 @@ import tale.engine;
 
 VULKAN_HPP_DEFAULT_DISPATCH_LOADER_DYNAMIC_STORAGE
 
+void spawn_layer(std::vector<tale::Entity>& entities, int side, float height, float scale, size_t model_index) {
+    for (int x = 0; x < side; ++x) {
+        float x_pos = static_cast<float>(x) - static_cast<float>(side) / 2.0f;
+        for (int y = 0; y < side; ++y) {
+            float y_pos = static_cast<float>(y) - static_cast<float>(side) / 2.0f;
+            entities.push_back(
+                tale::Entity{.global_transform = {.position = {1.5f * scale * x_pos, 1.5f * scale * y_pos, height}, .scale = scale}, .model_index = model_index}
+            );
+        }
+    }
+}
+
 class Demo_app : public tale::App {
 public:
     Demo_app() {
@@ -16,12 +28,13 @@ public:
         const auto cube_id = scene.add_model("cube", tale::Collision_shape::Cube, {glm::vec3(-0.5, -0.5, -0.5), glm::vec3(0.5, 0.5, 0.5)});
         const auto floor_id = scene.add_model("floor", tale::Collision_shape::Plane, {glm::vec3(-50.0, -50.0, -1.0), glm::vec3(50.0, 50.0, 0.0)});
 
-        scene.camera.pose.position = {-10.0f, 0.0f, 2.0f};
+        scene.camera.pose.position = {-20.0f, 0.0f, 3.0f};
 
         scene.entities.push_back(tale::Entity{.global_transform = {.position = {0.0f, 0.0f, 0.0f}, .scale = 1.0f}, .model_index = floor_id});
-        scene.entities.push_back(tale::Entity{.global_transform = {.position = {0.0f, -0.5f, 1.5f}, .scale = 1.0f}, .model_index = sphere_id});
-        scene.entities.push_back(tale::Entity{.global_transform = {.position = {1.0f, 0.0f, 5.0f}, .scale = 1.0f}, .model_index = sphere_id});
-        scene.entities.push_back(tale::Entity{.global_transform = {.position = {0.0f, 0.1f, 3.5f}, .scale = 1.5f}, .model_index = cube_id});
+        spawn_layer(scene.entities, 5, 1.5f, 1.0f, sphere_id);
+        spawn_layer(scene.entities, 3, 4.0f, 1.5f, cube_id);
+        spawn_layer(scene.entities, 4, 5.5f, 1.5f, sphere_id);
+        spawn_layer(scene.entities, 5, 7.0f, 1.0f, cube_id);
 
         scene.materials.push_back(tale::Material{.color = {0.8f, 0.2f, 0.2f, 1.0f}, .ks = 0.15f, .shininess = 32.0, .f0 = 0.2f});
         scene.materials.push_back(tale::Material{.color = {0.3f, 0.2f, 0.8f, 1.0f}, .ks = 0.15f, .shininess = 32.0, .f0 = 0.2f});

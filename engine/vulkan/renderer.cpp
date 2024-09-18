@@ -92,8 +92,9 @@ void Renderer::trace(vk::CommandBuffer command_buffer, vk::Fence fence, size_t c
     command_buffer.bindDescriptorSets(vk::PipelineBindPoint::eRayTracingKHR, pipeline.pipeline_layout, 0, descriptor_sets[command_pool_id], {});
 
     command_buffer.pushConstants(
-        pipeline.pipeline_layout, vk::ShaderStageFlagBits::eRaygenKHR /* | vk::ShaderStageFlagBits::eIntersectionKHR | vk::ShaderStageFlagBits::eAnyHitKHR |
-                                      vk::ShaderStageFlagBits::eClosestHitKHR | vk::ShaderStageFlagBits::eMissKHR*/
+        pipeline.pipeline_layout,
+        vk::ShaderStageFlagBits::eRaygenKHR | vk::ShaderStageFlagBits::eIntersectionKHR | vk::ShaderStageFlagBits::eClosestHitKHR |
+        vk::ShaderStageFlagBits::eAnyHitKHR /*| vk::ShaderStageFlagBits::eMissKHR*/
         ,
         0, sizeof(Camera), &scene.camera
     );
