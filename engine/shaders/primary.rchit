@@ -27,6 +27,21 @@ vec3 normal(in vec3 position)
 
 vec3 lighting(in vec3 global_position, in vec3 global_normal, in Material material)
 {   
+    shadow_payload = 1.0;    
+    traceRayEXT(acceleration_structure,
+        gl_RayFlagsSkipClosestHitShaderEXT,
+        0xFF,
+        2,  // sbtRecordOffset
+        0,  // sbtRecordStride
+        1,  // missIndex
+        global_position,
+        0.01,
+        global_normal,
+        0.5,
+        1  // payload (location = 1)
+        );
+    const float ao = shadow_payload;
+
     const vec3 view_direction = -gl_WorldRayDirectionEXT;
 
 	vec3 color = vec3(0.0);
@@ -48,7 +63,7 @@ vec3 lighting(in vec3 global_position, in vec3 global_normal, in Material materi
                         0,  // sbtRecordStride
                         1,  // missIndex
                         global_position,
-                        0.005,
+                        0.01,
                         light_direction,   
                         light_distance,
                         1   // payload (location = 1)
@@ -61,7 +76,7 @@ vec3 lighting(in vec3 global_position, in vec3 global_normal, in Material materi
         const vec3 halfway = normalize(light_direction + view_direction);
         const vec3 specular = pow(max(dot(global_normal, halfway), 0.0), material.shininess) * light.color;
 
-        color += material.color.xyz * (ambient + shadow_payload * diffuse) + shadow_payload * material.ks * specular;
+        color += ao * (material.color.xyz * (ambient + shadow_payload * diffuse) + shadow_payload * material.ks * specular);
      }
      return color;
 }

@@ -24,9 +24,11 @@ void spawn_layer(std::vector<tale::Entity>& entities, int side, float height, fl
 class Demo_app : public tale::App {
 public:
     Demo_app() {
-        const auto sphere_id = scene.add_model("sphere", tale::Collision_shape::Sphere, {glm::vec3(-0.5, -0.5, -0.5), glm::vec3(0.5, 0.5, 0.5)});
-        const auto cube_id = scene.add_model("cube", tale::Collision_shape::Cube, {glm::vec3(-0.5, -0.5, -0.5), glm::vec3(0.5, 0.5, 0.5)});
-        const auto floor_id = scene.add_model("floor", tale::Collision_shape::Plane, {glm::vec3(-50.0, -50.0, -1.0), glm::vec3(50.0, 50.0, 0.0)});
+        const auto inflate = glm::vec3(1.1f); // Inflate the bounding box to handle soft shadows
+        const auto sphere_id = scene.add_model("sphere", tale::Collision_shape::Sphere, {glm::vec3(-0.5) - inflate, glm::vec3(0.5) + inflate});
+        const auto cube_id = scene.add_model("cube", tale::Collision_shape::Cube, {glm::vec3(-0.5) - inflate, glm::vec3(0.5) + inflate});
+        const auto floor_id =
+            scene.add_model("floor", tale::Collision_shape::Plane, {glm::vec3(-50.0, -50.0, -1.0) - inflate, glm::vec3(50.0, 50.0, 0.0) + inflate});
 
         scene.camera.pose.position = {-20.0f, 0.0f, 3.0f};
 

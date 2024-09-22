@@ -8,34 +8,32 @@
 
 layout(location = 1) rayPayloadInEXT float shadow_payload;
 
-float raymarch_soft_shadow(in float factor)
+float raymarch_soft_shadow(in float radius)
 {
     const vec3 origin = gl_ObjectRayOriginEXT;
     const vec3 direction = gl_ObjectRayDirectionEXT;
     
-    //float res = 1.0;
     const float len = length(direction);
-    float t = gl_RayTminEXT;
+    float t = gl_RayTminEXT;    
+    float shadow = 1.0;
     for (int i = 0; i < 128 && t < gl_RayTmaxEXT; i++)
     {
         Hit hit = map(origin + t * direction);
         const float global_distance = hit.distance / len;
-        if(global_distance < 0.0001) {
-            return 0.0;
-        }
-    //    res = min(res, factor * global_distance / t);
-        t += ADVANCE_RATIO * global_distance;
+        shadow = min(shadow, (global_distance * gl_RayTmaxEXT) / (radius * t));
+        t += clamp(global_distance, 0.005, 0.50);
+        if(shadow < -1.0 || t > gl_RayTmaxEXT) break;
     }
-    //return res;
-    return 1.0;
+    shadow = max(shadow,-1.0);
+    return 0.25 * (1.0 + shadow) * (1.0 + shadow) * (2.0 - shadow);
 }
 
 void main()
 {
-    shadow_payload = min(shadow_payload, raymarch_soft_shadow(256.0));
+    shadow_payload = min(shadow_payload, raymarch_soft_shadow(0.1));
     if (shadow_payload == 0.0)
     {
-        //terminateRayEXT;
+        terminateRayEXT;
     }
 }
 

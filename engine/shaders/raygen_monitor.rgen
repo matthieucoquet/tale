@@ -4,7 +4,7 @@
 #extension GL_EXT_scalar_block_layout : enable
 #extension GL_GOOGLE_include_directive : enable
 
-#define SUPER_SAMPLE
+//#define SUPER_SAMPLE
 
 struct Pose
 {
