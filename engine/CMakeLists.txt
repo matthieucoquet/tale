@@ -5,6 +5,7 @@ find_package(glm CONFIG REQUIRED)
 # find_package(imgui CONFIG REQUIRED)
 find_package(spdlog REQUIRED)
 # find_package(Stb REQUIRED)
+find_package(OpenXR CONFIG REQUIRED)
 
 find_package(unofficial-shaderc CONFIG REQUIRED)
 
@@ -29,7 +30,10 @@ target_sources(engine
     engine/monitor_render_system.cpp
     engine/physics_system.cpp
     engine/shader_system.cpp
+    engine/vr_system.cpp
     engine/system.cpp
+    vr/vr.cpp
+    vr/instance.cpp
     vulkan/vulkan.cpp
     vulkan/acceleration_structure.cpp
     vulkan/command_buffer.cpp
@@ -53,6 +57,7 @@ target_link_libraries(engine
     glfw
     unofficial::shaderc::shaderc
     physx::physx
+    OpenXR::headers OpenXR::openxr_loader
 )
 
 target_include_directories(engine SYSTEM PRIVATE
