@@ -9,7 +9,8 @@ import tale.vulkan.image;
 namespace tale::vulkan {
 export class Monitor_swapchain {
 public:
-    static constexpr vk::Format format{vk::Format::eB8G8R8A8Unorm};
+    // static constexpr vk::Format format{vk::Format::eB8G8R8A8Unorm};
+    static constexpr vk::Format format{vk::Format::eB8G8R8A8Srgb};
     static constexpr uint32_t image_count{3u};
 
     vk::SwapchainKHR swapchain;
@@ -185,9 +186,7 @@ void Monitor_swapchain::copy_image(vk::CommandBuffer command_buffer, vk::Image s
 }
 
 void Monitor_swapchain::present(vk::CommandBuffer& command_buffer, vk::Fence fence, size_t command_pool_id) {
-    vk::SemaphoreSubmitInfo wait_semaphore_submit_info{
-        .semaphore = semaphore_available[command_pool_id], .stageMask = vk::PipelineStageFlagBits2::eTopOfPipe
-    };
+    vk::SemaphoreSubmitInfo wait_semaphore_submit_info{.semaphore = semaphore_available[command_pool_id], .stageMask = vk::PipelineStageFlagBits2::eTopOfPipe};
     vk::SemaphoreSubmitInfo signal_semaphore_submit_info{
         .semaphore = semaphore_finished[command_pool_id], .stageMask = vk::PipelineStageFlagBits2::eBottomOfPipe
     };
@@ -214,7 +213,7 @@ void Monitor_swapchain::present(vk::CommandBuffer& command_buffer, vk::Fence fen
         throw std::runtime_error("presentKHR returned eErrorOutOfDateKHR");
     }
     //[[maybe_unused]] auto result = device.waitForFences(fence, true, std::numeric_limits<uint64_t>::max());
-    //queue.waitIdle();
+    // queue.waitIdle();
 }
 
 }

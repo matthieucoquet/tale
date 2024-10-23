@@ -4,7 +4,7 @@
 #extension GL_EXT_scalar_block_layout : enable
 #extension GL_GOOGLE_include_directive : enable
 
-//#define SUPER_SAMPLE
+// #define SUPER_SAMPLE
 
 struct Pose
 {
@@ -68,7 +68,7 @@ void main()
 #else
 	vec3 color = trace(vec2(0.5, 0.5));
 #endif
-    imageStore(image, nonuniformEXT(ivec2(gl_LaunchIDEXT.xy)), vec4(color, 1.0));
+    imageStore(image, nonuniformEXT(ivec2(gl_LaunchIDEXT.xy)), vec4(color, 1.0));    
 }
 
 

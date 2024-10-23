@@ -70,7 +70,7 @@ vec3 lighting(in vec3 global_position, in vec3 global_normal, in Material materi
                         );
         }
 
-        const vec3 ambient = 0.03 * light.color;
+        const vec3 ambient = 0.01 * light.color;
         const vec3 diffuse = max(dot(global_normal, light_direction), 0.0) * light.color;
 
         const vec3 halfway = normalize(light_direction + view_direction);

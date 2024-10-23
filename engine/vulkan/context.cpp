@@ -5,6 +5,7 @@ export module tale.vulkan.context;
 import std;
 import vulkan_hpp;
 import tale.window;
+import tale.vr.instance;
 
 namespace tale::vulkan {
 export class Context {
@@ -19,7 +20,7 @@ public:
     VmaAllocator allocator;
     vk::DescriptorPool descriptor_pool;
 
-    Context(Window& window);
+    Context(Window& window, vr::Instance* vr_instance = nullptr);
     Context(const Context& other) = delete;
     Context(Context&& other) = delete;
     Context& operator=(const Context& other) = delete;
@@ -27,8 +28,8 @@ public:
     ~Context();
 
 private:
-    void init_instance(const Window& window);
-    void init_device();
+    void init_instance(const Window& window, vr::Instance* vr_instance);
+    void init_device(vr::Instance* instance);
     void init_allocator();
     void init_descriptor_pool();
 };
@@ -41,10 +42,10 @@ constexpr bool use_validation_layers = true;
 
 namespace tale::vulkan {
 
-Context::Context(Window& window) {
-    init_instance(window);
+Context::Context(Window& window, vr::Instance* vr_instance) {
+    init_instance(window, vr_instance);
     surface = window.create_surface(instance);
-    init_device();
+    init_device(vr_instance);
     init_allocator();
     init_descriptor_pool();
 }
@@ -58,7 +59,7 @@ Context::~Context() {
     instance.destroy();
 }
 
-void Context::init_instance(const Window& window) {
+void Context::init_instance(const Window& window, vr::Instance* vr_instance) {
     const auto required_extensions = window.required_extensions();
 
     VULKAN_HPP_DEFAULT_DISPATCHER.init();
@@ -79,23 +80,35 @@ void Context::init_instance(const Window& window) {
     constexpr std::array required_layers{"VK_LAYER_KHRONOS_validation", "VK_LAYER_LUNARG_monitor"};
 
     vk::ApplicationInfo app_info{.pApplicationName = "tale", .apiVersion = VK_API_VERSION_1_3};
-    instance = vk::createInstance(vk::InstanceCreateInfo{
+    const vk::InstanceCreateInfo instance_create_info{
         .pApplicationInfo = &app_info,
         .enabledLayerCount = static_cast<uint32_t>(use_validation_layers ? required_layers.size() : 0u),
         .ppEnabledLayerNames = use_validation_layers ? required_layers.data() : nullptr,
         .enabledExtensionCount = static_cast<uint32_t>(required_extensions.size()),
         .ppEnabledExtensionNames = required_extensions.data()
-    });
+    };
+    if (vr_instance) {
+        instance = vr_instance->create_vulkan_instance(instance_create_info, vk::defaultDispatchLoaderDynamic.vkGetInstanceProcAddr);
+    } else {
+        instance = vk::createInstance(instance_create_info);
+    }
+
     VULKAN_HPP_DEFAULT_DISPATCHER.init(instance);
 }
 
-void Context::init_device() {
+void Context::init_device(vr::Instance* vr_instance) {
     const std::array required_device_extensions = {
         VK_KHR_SWAPCHAIN_EXTENSION_NAME, VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME, VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME,
         VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME
     };
 
-    const std::vector potential_physical_devices = instance.enumeratePhysicalDevices();
+    std::vector<vk::PhysicalDevice> potential_physical_devices;
+    if (vr_instance) {
+        vk::PhysicalDevice potential_vr_device = vr_instance->get_vulkan_physical_device(instance);
+        potential_physical_devices.push_back(potential_vr_device);
+    } else {
+        potential_physical_devices = instance.enumeratePhysicalDevices();
+    }
 
     // Loop over physical devices and find the best one
     const vk::PhysicalDevice* selected_physical_device = nullptr;
@@ -189,16 +202,26 @@ void Context::init_device() {
     };
     vk::PhysicalDeviceFeatures2 device_features{
         .pNext = &raytracing_pileline_features,
+        .features =
+            {
+                .shaderStorageImageMultisample = true, // For OpenXR
+            }
     };
     const float queue_priority = 1.0f;
     vk::DeviceQueueCreateInfo queue_create_info{.queueFamilyIndex = queue_family, .queueCount = 1u, .pQueuePriorities = &queue_priority};
-    device = physical_device.createDevice(vk::DeviceCreateInfo{
+    const vk::DeviceCreateInfo device_create_info{
         .pNext = &device_features,
         .queueCreateInfoCount = 1u,
         .pQueueCreateInfos = &queue_create_info,
         .enabledExtensionCount = static_cast<uint32_t>(required_device_extensions.size()),
         .ppEnabledExtensionNames = required_device_extensions.data()
-    });
+    };
+    if (vr_instance) {
+        device = vr_instance->create_vulkan_device(physical_device, device_create_info, vk::defaultDispatchLoaderDynamic.vkGetInstanceProcAddr);
+        vr_instance->set_graphics_binding(instance, physical_device, device, queue_family);
+    } else {
+        device = physical_device.createDevice(device_create_info);
+    }
     VULKAN_HPP_DEFAULT_DISPATCHER.init(device);
 
     queue = device.getQueue(queue_family, 0u);

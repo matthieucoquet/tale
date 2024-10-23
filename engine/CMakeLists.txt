@@ -34,6 +34,8 @@ target_sources(engine
     engine/system.cpp
     vr/vr.cpp
     vr/instance.cpp
+    vr/vr_swapchain.cpp
+    vr/session.cpp
     vulkan/vulkan.cpp
     vulkan/acceleration_structure.cpp
     vulkan/command_buffer.cpp

@@ -5,5 +5,5 @@ layout(location = 0) rayPayloadInEXT vec3 hit_value;
 
 void main()
 {
-    hit_value = vec3(0.1,0.1,0.15);
+    hit_value = vec3(0.05,0.03,0.08);
 }

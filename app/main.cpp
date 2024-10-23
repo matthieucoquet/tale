@@ -1,6 +1,6 @@
+#include <glm/glm.hpp>
 #include <spdlog/spdlog.h>
 #include <vulkan/vulkan_hpp_macros.hpp>
-#include <glm/glm.hpp>
 import std;
 import tale.app;
 import tale.scene;
@@ -38,21 +38,23 @@ public:
         spawn_layer(scene.entities, 4, 5.5f, 1.5f, sphere_id);
         spawn_layer(scene.entities, 5, 7.0f, 1.0f, cube_id);
 
-        scene.materials.push_back(tale::Material{.color = {0.8f, 0.2f, 0.2f, 1.0f}, .ks = 0.15f, .shininess = 32.0, .f0 = 0.2f});
-        scene.materials.push_back(tale::Material{.color = {0.3f, 0.2f, 0.8f, 1.0f}, .ks = 0.15f, .shininess = 32.0, .f0 = 0.2f});
+        scene.materials.push_back(tale::Material{.color = {0.8f, 0.1f, 0.1f, 1.0f}, .ks = 0.15f, .shininess = 32.0, .f0 = 0.2f});
+        scene.materials.push_back(tale::Material{.color = {0.15f, 0.1f, 0.8f, 1.0f}, .ks = 0.15f, .shininess = 32.0, .f0 = 0.2f});
         scene.materials.push_back(tale::Material{.color = {0.95f, 0.95f, 0.95f, 1.0f}, .ks = 0.15f, .shininess = 32.0, .f0 = 0.2f});
-        scene.materials.push_back(tale::Material{.color = {0.2f, 0.2f, 0.2f, 1.0f}, .ks = 0.15f, .shininess = 32.0, .f0 = 0.2f});
+        scene.materials.push_back(tale::Material{.color = {0.05f, 0.05f, 0.05f, 1.0f}, .ks = 0.15f, .shininess = 32.0, .f0 = 0.2f});
 
-        scene.lights.push_back(tale::Light{.position = {-10.0f, 5.0f, 4.0f}, .color = {0.8f, 0.8f, 0.8f}});
+        scene.lights.push_back(tale::Light{.position = {-10.0f, 5.0f, 4.0f}, .color = {0.4f, 0.4f, 0.4f}});
         scene.lights.push_back(tale::Light{.position = {-10.0f, -20.0f, 1.0f}, .color = {0.1f, 0.1f, 0.1f}});
 
-        systems.push_back(std::make_unique<tale::engine::Physics_system>(scene));
         systems.push_back(std::make_unique<tale::engine::Monitor_render_system>(scene, std::filesystem::path(SHADER_SOURCE)));
+        // systems.push_back(std::make_unique<tale::engine::Vr_system>());
+
+        systems.push_back(std::make_unique<tale::engine::Physics_system>(scene));
     }
 };
 
 int main() {
-    spdlog::set_level(spdlog::level::info);
+    spdlog::set_level(spdlog::level::debug);
 
     Demo_app app{};
     app.run();
