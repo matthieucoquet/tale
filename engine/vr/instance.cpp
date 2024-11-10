@@ -10,6 +10,7 @@ public:
     xr::Instance instance;
     xr::SystemId system_id;
     xr::GraphicsBindingVulkanKHR graphic_binding;
+    float view_ratio;
 
     Instance();
     Instance(const Instance& other) = delete;
@@ -44,7 +45,9 @@ XrBool32 debug_callback(
 }
 
 Instance::Instance() {
-    std::vector<const char*> required_extensions{XR_EXT_DEBUG_UTILS_EXTENSION_NAME, XR_KHR_VULKAN_ENABLE2_EXTENSION_NAME};
+    std::vector<const char*> required_extensions{
+        XR_EXT_DEBUG_UTILS_EXTENSION_NAME, XR_KHR_VULKAN_ENABLE2_EXTENSION_NAME, XR_KHR_COMPOSITION_LAYER_DEPTH_EXTENSION_NAME
+    };
 
     {
         spdlog::debug("OpenXR API layers:");
@@ -93,12 +96,19 @@ Instance::Instance() {
     if (std::ranges::none_of(view_configurations, [](const auto& config) { return config == xr::ViewConfigurationType::PrimaryStereo; })) {
         throw std::runtime_error("Failed to find a stereo HMD.");
     }
+    const auto blend_modes = instance.enumerateEnvironmentBlendModesToVector(system_id, xr::ViewConfigurationType::PrimaryStereo);
+    if (std::ranges::none_of(blend_modes, [](const auto& mode) { return mode == xr::EnvironmentBlendMode::Opaque; })) {
+        throw std::runtime_error("Failed to find a HMD with opaque blend mode.");
+    }
+
+    const auto view_configuration_views = instance.enumerateViewConfigurationViewsToVector(system_id, xr::ViewConfigurationType::PrimaryStereo);
+    view_ratio = static_cast<float>(view_configuration_views[0].recommendedImageRectWidth * 2) / view_configuration_views[0].recommendedImageRectHeight;
 }
 
 Instance::~Instance() {
     if (instance) {
-        instance.destroy();
         debug_utils_messenger.destroy(dispatch_loader_dynamic);
+        instance.destroy();
     }
 }
 

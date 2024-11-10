@@ -41,7 +41,7 @@ Monitor_render_system::Monitor_render_system(Scene& scene, std::filesystem::path
     window(init_windows_size.width, init_windows_size.height),
     context(window),
     command_pools(context.device, context.queue_family, size_command_buffers),
-    shader_system(context, scene, model_shader_path),
+    shader_system(context, scene, model_shader_path, false),
     renderer(context, scene, size_command_buffers) {
     renderer.create_per_frame_data(context, scene, init_windows_size, size_command_buffers);
     renderer.create_descriptor_sets(context.descriptor_pool, size_command_buffers);
@@ -54,7 +54,9 @@ bool Monitor_render_system::step(Scene& scene) {
         const size_t command_pool_id = command_pools.find_next();
         auto& command_buffer = command_pools.command_buffers[command_pool_id];
         auto fence = command_pools.fences[command_pool_id];
-        renderer.trace(command_buffer, fence, command_pool_id, scene, init_windows_size);
+        renderer.start_frame(command_buffer, command_pool_id, scene);
+        renderer.trace(command_buffer, command_pool_id, scene, init_windows_size);
+        renderer.end_frame(command_buffer, fence, command_pool_id);
     }
     return true;
 }

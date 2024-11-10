@@ -38,9 +38,17 @@ layout(location = 0) rayPayloadEXT vec3 hit_value;
 
 vec3 trace(vec2 offset)
 {
-    const vec2 pixel_center = vec2(gl_LaunchIDEXT.xy) + offset;
-    const vec2 pixel_uv = pixel_center / vec2(gl_LaunchSizeEXT.xy);
+    bool is_right_camera = gl_LaunchIDEXT.x >= gl_LaunchSizeEXT.x / 2;
     Camera eye = cameras.left;
+    if (is_right_camera) {
+        eye = cameras.right;
+    }
+
+    const vec2 pixel_center = vec2(gl_LaunchIDEXT.xy) + offset;
+    vec2 pixel_uv = pixel_center / vec2(gl_LaunchSizeEXT.xy);
+    pixel_uv.x = pixel_uv.x * 2;
+    pixel_uv.x = is_right_camera ? pixel_uv.x - 1.0 : pixel_uv.x;
+
     vec3 direction = vec3(
         1.0,
         -(tan(eye.fov.left) + (pixel_uv.x) * (tan(eye.fov.right) - tan(eye.fov.left))),

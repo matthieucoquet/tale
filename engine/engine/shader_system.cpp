@@ -18,7 +18,7 @@ struct Shader_file {
 
 export class Shader_system final : public System {
 public:
-    Shader_system(vulkan::Context& context, Scene& scene, const std::filesystem::path& models_shader_path);
+    Shader_system(vulkan::Context& context, Scene& scene, const std::filesystem::path& models_shader_path, bool in_vr_mode);
     Shader_system(const Shader_system& other) = delete;
     Shader_system(Shader_system&& other) = delete;
     Shader_system& operator=(const Shader_system& other) = delete;
@@ -86,7 +86,7 @@ private:
     std::string model_filename;
 };
 
-Shader_system::Shader_system(vulkan::Context& context, Scene& scene, const std::filesystem::path& models_shader_path):
+Shader_system::Shader_system(vulkan::Context& context, Scene& scene, const std::filesystem::path& models_shader_path, bool in_vr_mode):
     device(context.device) {
 
     read_files(models_shader_path);
@@ -97,7 +97,7 @@ Shader_system::Shader_system(vulkan::Context& context, Scene& scene, const std::
     compile_options.SetTargetSpirv(shaderc_spirv_version_1_6);
     compile_options.SetWarningsAsErrors();
 
-    scene.shaders.raygen.module = compile("raygen_monitor.rgen", shaderc_raygen_shader);
+    scene.shaders.raygen.module = compile(in_vr_mode ? "raygen_vr.rgen" : "raygen_monitor.rgen", shaderc_raygen_shader);
     scene.shaders.primary_miss.module = compile("primary.rmiss", shaderc_miss_shader);
     scene.shaders.shadow_ao_miss.module = compile("shadow_ao.rmiss", shaderc_miss_shader);
     scene.shaders.shadow_ao_intersection.module = compile("shadow_ao.rint", shaderc_intersection_shader);

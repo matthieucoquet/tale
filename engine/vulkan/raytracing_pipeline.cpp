@@ -100,7 +100,7 @@ void Raytracing_pipeline::create_pipeline(Scene& scene) {
         .stageFlags = vk::ShaderStageFlagBits::eRaygenKHR | vk::ShaderStageFlagBits::eIntersectionKHR | vk::ShaderStageFlagBits::eClosestHitKHR |
                       vk::ShaderStageFlagBits::eAnyHitKHR,
         .offset = 0,
-        .size = sizeof(Camera)
+        .size = 2 * sizeof(Camera)
     };
 
     pipeline_layout = device.createPipelineLayout(vk::PipelineLayoutCreateInfo{
@@ -157,8 +157,7 @@ void Raytracing_pipeline::create_pipeline(Scene& scene) {
 
         shader_stages.push_back(vk::PipelineShaderStageCreateInfo{
             .stage = vk::ShaderStageFlagBits::eIntersectionKHR, .module = model.shaders.primary_intersection.module, .pName = "main"
-        }
-        );
+        });
         shader_stages.push_back(vk::PipelineShaderStageCreateInfo{
             .stage = vk::ShaderStageFlagBits::eClosestHitKHR, .module = model.shaders.primary_closest_hit.module, .pName = "main"
         });
@@ -167,8 +166,7 @@ void Raytracing_pipeline::create_pipeline(Scene& scene) {
         );
         shader_stages.push_back(vk::PipelineShaderStageCreateInfo{
             .stage = vk::ShaderStageFlagBits::eAnyHitKHR, .module = model.shaders.ambient_occlusion_any_hit.module, .pName = "main"
-        }
-        );
+        });
     }
 
     group_count = static_cast<uint32_t>(groups.size());
@@ -222,9 +220,8 @@ void Raytracing_pipeline::create_shader_binding_table(Context& context) {
         memcpy(temp_table.data() + offset_hit_group + i * 3 * handle_size_aligned, handles_data.data() + (3 + 3 * i) * handle_size, handle_size);
         memcpy(temp_table.data() + offset_hit_group + (i * 3 + 1) * handle_size_aligned, handles_data.data() + (3 + 3 * i + 1) * handle_size, handle_size);
         memcpy(temp_table.data() + offset_hit_group + (i * 3 + 2) * handle_size_aligned, handles_data.data() + (3 + 3 * i + 2) * handle_size, handle_size);
-
     }
-    //memcpy(temp_table.data() + offset_hit_group, handles_data.data() + 3 * handle_size, 3 * models_count * handle_size);
+    // memcpy(temp_table.data() + offset_hit_group, handles_data.data() + 3 * handle_size, 3 * models_count * handle_size);
 
     {
         One_time_command_buffer command_buffer(context.device, context.command_pool, context.queue);

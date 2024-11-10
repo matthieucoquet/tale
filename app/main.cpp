@@ -30,7 +30,7 @@ public:
         const auto floor_id =
             scene.add_model("floor", tale::Collision_shape::Plane, {glm::vec3(-50.0, -50.0, -1.0) - inflate, glm::vec3(50.0, 50.0, 0.0) + inflate});
 
-        scene.camera.pose.position = {-20.0f, 0.0f, 3.0f};
+        scene.cameras[0].pose.position = {-20.0f, 0.0f, 3.0f};
 
         scene.entities.push_back(tale::Entity{.global_transform = {.position = {0.0f, 0.0f, 0.0f}, .scale = 1.0f}, .model_index = floor_id});
         spawn_layer(scene.entities, 5, 1.5f, 1.0f, sphere_id);
@@ -46,8 +46,8 @@ public:
         scene.lights.push_back(tale::Light{.position = {-10.0f, 5.0f, 4.0f}, .color = {0.4f, 0.4f, 0.4f}});
         scene.lights.push_back(tale::Light{.position = {-10.0f, -20.0f, 1.0f}, .color = {0.1f, 0.1f, 0.1f}});
 
-        systems.push_back(std::make_unique<tale::engine::Monitor_render_system>(scene, std::filesystem::path(SHADER_SOURCE)));
-        // systems.push_back(std::make_unique<tale::engine::Vr_system>());
+        // systems.push_back(std::make_unique<tale::engine::Monitor_render_system>(scene, std::filesystem::path(SHADER_SOURCE)));
+        systems.push_back(std::make_unique<tale::engine::Vr_system>(scene, std::filesystem::path(SHADER_SOURCE)));
 
         systems.push_back(std::make_unique<tale::engine::Physics_system>(scene));
     }

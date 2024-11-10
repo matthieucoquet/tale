@@ -37,7 +37,10 @@ public:
     void reset_swapchain(Context& context);
     void create_per_frame_data(Context& context, Scene& scene, vk::Extent2D extent, size_t command_pool_size);
     void create_descriptor_sets(vk::DescriptorPool descriptor_pool, size_t command_pool_size);
-    void trace(vk::CommandBuffer command_buffer, vk::Fence fence, size_t command_pool_id, const Scene& scene, vk::Extent2D extent);
+
+    void start_frame(vk::CommandBuffer command_buffer, size_t command_pool_id, const Scene& scene);
+    vk::Image trace(vk::CommandBuffer command_buffer, size_t command_pool_id, const Scene& scene, vk::Extent2D extent);
+    void end_frame(vk::CommandBuffer command_buffer, vk::Fence fence, size_t command_pool_id);
 
 private:
     vk::Device device;
@@ -65,13 +68,12 @@ Renderer::Renderer(Context& context, Scene& scene, size_t size_command):
     for (const auto& model : scene.models) {
         blas.push_back(Blas(context, model));
     }
-    }
+}
 
 Renderer::~Renderer() { device.waitIdle(); }
 
-void Renderer::trace(vk::CommandBuffer command_buffer, vk::Fence fence, size_t command_pool_id, const Scene& scene, vk::Extent2D extent) {
+void Renderer::start_frame(vk::CommandBuffer command_buffer, size_t command_pool_id, const Scene& scene) {
     update_per_frame_data(scene, command_pool_id);
-
     command_buffer.begin({.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
 
     Per_frame& frame_data = per_frame[command_pool_id];
@@ -87,6 +89,9 @@ void Renderer::trace(vk::CommandBuffer command_buffer, vk::Fence fence, size_t c
     command_buffer.pipelineBarrier2(
         vk::DependencyInfoKHR{.bufferMemoryBarrierCount = static_cast<uint32_t>(barriers.size()), .pBufferMemoryBarriers = barriers.data()}
     );
+}
+
+vk::Image Renderer::trace(vk::CommandBuffer command_buffer, size_t command_pool_id, const Scene& scene, vk::Extent2D extent) {
 
     command_buffer.bindPipeline(vk::PipelineBindPoint::eRayTracingKHR, pipeline.pipeline);
     command_buffer.bindDescriptorSets(vk::PipelineBindPoint::eRayTracingKHR, pipeline.pipeline_layout, 0, descriptor_sets[command_pool_id], {});
@@ -94,9 +99,9 @@ void Renderer::trace(vk::CommandBuffer command_buffer, vk::Fence fence, size_t c
     command_buffer.pushConstants(
         pipeline.pipeline_layout,
         vk::ShaderStageFlagBits::eRaygenKHR | vk::ShaderStageFlagBits::eIntersectionKHR | vk::ShaderStageFlagBits::eClosestHitKHR |
-        vk::ShaderStageFlagBits::eAnyHitKHR /*| vk::ShaderStageFlagBits::eMissKHR*/
+            vk::ShaderStageFlagBits::eAnyHitKHR /*| vk::ShaderStageFlagBits::eMissKHR*/
         ,
-        0, sizeof(Camera), &scene.camera
+        0, 2 * sizeof(Camera), &scene.cameras
     );
 
     command_buffer.traceRaysKHR(
@@ -104,8 +109,25 @@ void Renderer::trace(vk::CommandBuffer command_buffer, vk::Fence fence, size_t c
         extent.height, 1u
     );
 
+    Per_frame& frame_data = per_frame[command_pool_id];
     swapchain.copy_image(command_buffer, frame_data.render_texture.image.image, command_pool_id, extent);
-    command_buffer.end();
+    return frame_data.render_texture.image.image;
+}
+
+void Renderer::end_frame(vk::CommandBuffer command_buffer, vk::Fence fence, size_t command_pool_id) {
+    {
+        vk::ImageMemoryBarrier2 memory_barrier{
+            .srcStageMask = vk::PipelineStageFlagBits2::eTransfer,
+            .srcAccessMask = vk::AccessFlagBits2::eTransferRead,
+            .dstStageMask = vk::PipelineStageFlagBits2::eRayTracingShaderKHR,
+            .dstAccessMask = vk::AccessFlagBits2::eShaderWrite,
+            .oldLayout = vk::ImageLayout::eTransferSrcOptimal,
+            .newLayout = vk::ImageLayout::eGeneral,
+            .image = per_frame[command_pool_id].render_texture.image.image,
+            .subresourceRange = {.aspectMask = vk::ImageAspectFlagBits::eColor, .baseMipLevel = 0, .levelCount = 1u, .baseArrayLayer = 0, .layerCount = 1}
+        };
+        command_buffer.pipelineBarrier2(vk::DependencyInfo{.imageMemoryBarrierCount = 1, .pImageMemoryBarriers = &memory_barrier});
+    }
     swapchain.present(command_buffer, fence, command_pool_id);
 }
 

@@ -82,7 +82,7 @@ public:
     Scene_shaders shaders;
     std::vector<Model> models;
 
-    Camera camera;
+    std::array<Camera, 2> cameras;
     std::vector<Entity> entities;
 
     std::vector<Material> materials;

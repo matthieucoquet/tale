@@ -9,8 +9,8 @@ import tale.vulkan.image;
 namespace tale::vulkan {
 export class Monitor_swapchain {
 public:
-    // static constexpr vk::Format format{vk::Format::eB8G8R8A8Unorm};
-    static constexpr vk::Format format{vk::Format::eB8G8R8A8Srgb};
+    static constexpr vk::Format format{vk::Format::eB8G8R8A8Unorm};
+    // static constexpr vk::Format format{vk::Format::eB8G8R8A8Srgb};
     static constexpr uint32_t image_count{3u};
 
     vk::SwapchainKHR swapchain;
@@ -155,37 +155,25 @@ void Monitor_swapchain::copy_image(vk::CommandBuffer command_buffer, vk::Image s
         },
         vk::Filter::eLinear
     );
-
-    {
-        std::array memory_barriers{
-            vk::ImageMemoryBarrier2{
-                .srcStageMask = vk::PipelineStageFlagBits2::eTransfer,
-                .srcAccessMask = vk::AccessFlagBits2::eTransferWrite,
-                .dstStageMask = vk::PipelineStageFlagBits2::eBottomOfPipe,
-                .dstAccessMask = {},
-                .oldLayout = vk::ImageLayout::eTransferDstOptimal,
-                .newLayout = vk::ImageLayout::ePresentSrcKHR,
-                .image = images[next_image_id],
-                .subresourceRange = {.aspectMask = vk::ImageAspectFlagBits::eColor, .baseMipLevel = 0, .levelCount = 1u, .baseArrayLayer = 0, .layerCount = 1}
-            },
-            vk::ImageMemoryBarrier2{
-                .srcStageMask = vk::PipelineStageFlagBits2::eTransfer,
-                .srcAccessMask = vk::AccessFlagBits2::eTransferRead,
-                .dstStageMask = vk::PipelineStageFlagBits2::eRayTracingShaderKHR,
-                .dstAccessMask = vk::AccessFlagBits2::eShaderWrite,
-                .oldLayout = vk::ImageLayout::eTransferSrcOptimal,
-                .newLayout = vk::ImageLayout::eGeneral,
-                .image = source_image,
-                .subresourceRange = {.aspectMask = vk::ImageAspectFlagBits::eColor, .baseMipLevel = 0, .levelCount = 1u, .baseArrayLayer = 0, .layerCount = 1}
-            }
-        };
-        command_buffer.pipelineBarrier2(
-            vk::DependencyInfo{.imageMemoryBarrierCount = static_cast<uint32_t>(memory_barriers.size()), .pImageMemoryBarriers = memory_barriers.data()}
-        );
-    }
 }
 
 void Monitor_swapchain::present(vk::CommandBuffer& command_buffer, vk::Fence fence, size_t command_pool_id) {
+    {
+        vk::ImageMemoryBarrier2 memory_barrier{
+            .srcStageMask = vk::PipelineStageFlagBits2::eTransfer,
+            .srcAccessMask = vk::AccessFlagBits2::eTransferWrite,
+            .dstStageMask = vk::PipelineStageFlagBits2::eBottomOfPipe,
+            .dstAccessMask = {},
+            .oldLayout = vk::ImageLayout::eTransferDstOptimal,
+            .newLayout = vk::ImageLayout::ePresentSrcKHR,
+            .image = images[next_image_id],
+            .subresourceRange = {.aspectMask = vk::ImageAspectFlagBits::eColor, .baseMipLevel = 0, .levelCount = 1u, .baseArrayLayer = 0, .layerCount = 1}
+        };
+        command_buffer.pipelineBarrier2(vk::DependencyInfo{.imageMemoryBarrierCount = 1, .pImageMemoryBarriers = &memory_barrier});
+    }
+
+    command_buffer.end();
+
     vk::SemaphoreSubmitInfo wait_semaphore_submit_info{.semaphore = semaphore_available[command_pool_id], .stageMask = vk::PipelineStageFlagBits2::eTopOfPipe};
     vk::SemaphoreSubmitInfo signal_semaphore_submit_info{
         .semaphore = semaphore_finished[command_pool_id], .stageMask = vk::PipelineStageFlagBits2::eBottomOfPipe
