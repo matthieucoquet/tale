@@ -30,7 +30,8 @@ public:
         const auto floor_id =
             scene.add_model("floor", tale::Collision_shape::Plane, {glm::vec3(-50.0, -50.0, -1.0) - inflate, glm::vec3(50.0, 50.0, 0.0) + inflate});
 
-        scene.cameras[0].pose.position = {-20.0f, 0.0f, 3.0f};
+        scene.center_play_area = {-20.0f, 0.0f, 0.0f};
+        scene.cameras[0].pose.position = scene.center_play_area + glm::vec3(0.0f, 0.0f, 3.0f);
 
         scene.entities.push_back(tale::Entity{.global_transform = {.position = {0.0f, 0.0f, 0.0f}, .scale = 1.0f}, .model_index = floor_id});
         spawn_layer(scene.entities, 5, 1.5f, 1.0f, sphere_id);

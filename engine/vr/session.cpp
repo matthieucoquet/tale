@@ -1,5 +1,7 @@
 module;
 #include "vr_common.hpp"
+#include <glm/glm.hpp>
+#include <glm/gtc/quaternion.hpp>
 #include <spdlog/spdlog.h>
 #include <vulkan/vulkan_hpp_macros.hpp>
 export module tale.vr.session;
@@ -135,12 +137,23 @@ void Session::handle_state_change(xr::EventDataSessionStateChanged& event_stage_
 }
 
 void update_camera(Camera& camera, xr::Posef pose, xr::Fovf fov) {
-    // camera.pose.rotation = glm::quat(pose.orientation.w, pose.orientation.x, pose.orientation.y, pose.orientation.z);
-    camera.pose.rotation.x = pose.orientation.x;
-    camera.pose.rotation.y = pose.orientation.y;
-    camera.pose.rotation.z = pose.orientation.z;
-    camera.pose.rotation.w = pose.orientation.w;
-    camera.pose.position = {pose.position.x, pose.position.y, pose.position.z};
+    // clang-format off
+    static const glm::mat4 to_open_xr_frame = glm::mat4(
+        0.0f, 0.0f, -1.0f, 0.0f,
+        -1.0f, 0.0f, 0.0f, 0.0f,
+        0.0f, 1.0f, 0.0f, 0.0f,
+        0.0f, 0.0f, 0.0f, 1.0f
+    );
+    // clang-format on
+    static const glm::mat4 from_open_xr_frame = glm::inverse(to_open_xr_frame);
+
+    glm::quat xr_orientation = glm::quat(pose.orientation.w, pose.orientation.x, pose.orientation.y, pose.orientation.z);
+    glm::vec4 xr_position = glm::vec4(pose.position.x, pose.position.y, pose.position.z, 1.0f);
+
+    glm::mat4 rotation = from_open_xr_frame * glm::mat4_cast(xr_orientation) * to_open_xr_frame;
+
+    camera.pose.rotation = glm::quat_cast(rotation);
+    camera.pose.position = glm::vec3(from_open_xr_frame * xr_position);
     camera.fov.left = fov.angleLeft;
     camera.fov.right = fov.angleRight;
     camera.fov.up = fov.angleUp;
@@ -163,6 +176,7 @@ bool Session::start_frame(Scene& scene) {
 
         for (size_t eye_id = 0u; eye_id < 2u; eye_id++) {
             update_camera(scene.cameras[eye_id], views[eye_id].pose, views[eye_id].fov);
+            scene.cameras[eye_id].pose.position += scene.center_play_area;
 
             composition_layer_views[eye_id].pose = views[eye_id].pose;
             composition_layer_views[eye_id].fov = views[eye_id].fov;

@@ -82,6 +82,7 @@ public:
     Scene_shaders shaders;
     std::vector<Model> models;
 
+    glm::vec3 center_play_area;
     std::array<Camera, 2> cameras;
     std::vector<Entity> entities;
 
