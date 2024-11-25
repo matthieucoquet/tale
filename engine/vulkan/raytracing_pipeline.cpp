@@ -233,6 +233,7 @@ void Raytracing_pipeline::create_shader_binding_table(Context& context) {
             temp_table.data()
         );
         shader_binding_table = std::move(buffer_and_staged.result);
+        command_buffer.submit_and_wait_idle();
     }
 
     const vk::DeviceAddress table_address = device.getBufferAddress(vk::BufferDeviceAddressInfo{.buffer = shader_binding_table.buffer});
